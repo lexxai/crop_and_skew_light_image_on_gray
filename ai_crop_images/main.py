@@ -74,7 +74,7 @@ def scan_file_dir(
         total_files = len(im_files)
         total_files_not_pass = len(im_files_not_pass)
         print(
-            f"total files: {total_files}, ready for operations: {total_files_not_pass}"
+            f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
         )
         for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
             im = im_files_not_pass[i]
