@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
+from rich import print
 
 
 def exception_keyboard(func):
@@ -49,26 +50,30 @@ def scan_file_dir(
         path_in = Path(im_dir)
         im_files = path_in.glob("*.*")
 
-        im_files = set(
-            [f for f in path_in.glob("*.*") if f.suffix.lower() in valid_formats]
-        )
+        im_files = [f for f in path_in.glob("*.*") if f.suffix.lower() in valid_formats]
 
         path_out = Path(output_dir)
         output_files = path_in.glob("*.*")
-        output_files = set(
-            [f for f in path_out.glob("*.*") if f.suffix.lower() in valid_formats]
-        )
+        output_files = [
+            f for f in path_out.glob("*.*") if f.suffix.lower() in valid_formats
+        ]
 
-        im_files.difference(output_files)
-        im_files = sorted(list(im_files))
+        im_files_not_pass = []
+        for i in im_files:
+            is_found = False
+            for o in output_files:
+                if i.name == o.name:
+                    is_found = True
+                    break
+            if not is_found:
+                im_files_not_pass.append(i)
 
-        # for im in im_files:
-        #     # print(f"im_scan({im})")
-        #     im_scan(im)
-        total_files = len(im_files)
+        im_files_not_pass = sorted(list(im_files_not_pass))
+
+        total_files = len(im_files_not_pass)
         print(f"total files: {total_files}")
         for i in progressbar(range(total_files), redirect_stdout=True):
-            im = im_files[i]
+            im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             im_scan(im)
             sleep(2)
