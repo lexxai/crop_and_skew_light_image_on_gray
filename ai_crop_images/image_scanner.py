@@ -22,8 +22,20 @@ def end_datetime(func):
     return wrapper
 
 
-@end_datetime
-@start_datetime
+def dur_datetime(func):
+    def wrapper(*args, **kwargs):
+        d1 = datetime.now()
+        print(f"\n *** Start:  {d1}")
+        result = func(*args, **kwargs)
+        d2 = datetime.now()
+        diff = d2 - d1
+        print(f" *** End:  {d2}, duration: {diff}")
+        return result
+
+    return wrapper
+
+
+@dur_datetime
 def im_scan(file_path: Path):
     print(f"{__package__}, im_scan {file_path}")
     size = file_path.stat().st_size
