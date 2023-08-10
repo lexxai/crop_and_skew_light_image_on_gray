@@ -61,8 +61,9 @@ def scan_file_dir(
         im_files_not_pass = []
         for i in im_files:
             is_found = False
-            for o in output_files:
+            for ind, o in enumerate(output_files):
                 if i.name == o.name:
+                    output_files.pop(ind)
                     is_found = True
                     break
             if not is_found:
@@ -79,7 +80,7 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             im_scan(im)
-            sleep(2)
+            # sleep(2)
 
 
 def app_arg():

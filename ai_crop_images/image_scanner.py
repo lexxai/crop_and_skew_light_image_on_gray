@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 from rich import print
+from random import randrange
+from time import sleep
 
 
 def start_datetime(func):
@@ -37,7 +39,8 @@ def dur_datetime(func):
 
 @dur_datetime
 def im_scan(file_path: Path):
-    print(f"{__package__}, im_scan {file_path}")
+    print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     size = file_path.stat().st_size
     modified = str(datetime.fromtimestamp(file_path.stat().st_mtime))
     print(f"{size=} bytes, {modified=}")
+    sleep(randrange(5, 40) / 10.0)
