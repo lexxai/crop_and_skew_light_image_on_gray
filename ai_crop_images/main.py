@@ -38,7 +38,7 @@ def scan_file_dir(
     im_file_path: str = None,
     im_dir: str = None,
 ):
-    valid_formats = [".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif"]
+    VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
@@ -50,12 +50,12 @@ def scan_file_dir(
         path_in = Path(im_dir)
         im_files = path_in.glob("*.*")
 
-        im_files = [f for f in path_in.glob("*.*") if f.suffix.lower() in valid_formats]
+        im_files = [f for f in path_in.glob("*.*") if f.suffix.lower() in VALID_FORMATS]
 
         path_out = Path(output_dir)
         output_files = path_in.glob("*.*")
         output_files = [
-            f for f in path_out.glob("*.*") if f.suffix.lower() in valid_formats
+            f for f in path_out.glob("*.*") if f.suffix.lower() in VALID_FORMATS
         ]
 
         im_files_not_pass = []
@@ -70,9 +70,12 @@ def scan_file_dir(
 
         im_files_not_pass = sorted(list(im_files_not_pass))
 
-        total_files = len(im_files_not_pass)
-        print(f"total files: {total_files}")
-        for i in progressbar(range(total_files), redirect_stdout=True):
+        total_files = len(im_files)
+        total_files_not_pass = len(im_files_not_pass)
+        print(
+            f"total files: {total_files}, ready for operations: {total_files_not_pass}"
+        )
+        for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             im_scan(im)
