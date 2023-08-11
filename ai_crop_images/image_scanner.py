@@ -46,13 +46,14 @@ def dur_datetime(func):
     return wrapper
 
 
-def cv_gamma(image, gamma: int):
+# GAMMA CODE : https://stackoverflow.com/questions/26912869/color-levels-in-opencv
+def cv_gamma(image, gamma: float = 7.0):
     inBlack = np.array([0, 0, 0], dtype=np.float32)
     inWhite = np.array([255, 255, 255], dtype=np.float32)
     inGamma = np.array([1.0, 1.0, 1.0], dtype=np.float32)
     outBlack = np.array([0, 0, 0], dtype=np.float32)
     outWhite = np.array([255, 255, 255], dtype=np.float32)
-    inGamma = 1 / gamma
+    inGamma = inGamma / gamma
     img_g = image.copy()
     img_g = np.clip((img_g - inBlack) / (inWhite - inBlack), 0, 255)
     img_g = (img_g ** (1 / inGamma)) * (outWhite - outBlack) + outBlack
@@ -63,7 +64,7 @@ def cv_gamma(image, gamma: int):
 def cv_processing(
     img_file: Path,
     output: Path,
-    image_rate: float = 1.294,
+    parameters: dict = {},
     debug: bool = False,
 ):
     #################################################################
@@ -72,9 +73,11 @@ def cv_processing(
     input_file: str = str(img_file)
     output_file: str = str(output.joinpath(img_file.name))
 
-    height = 800
-    width = 600
-    green = (0, 255, 0)
+    green_color = (0, 255, 0)
+
+    image_rate: float = float(parameters.get("rate", 1.294))
+    image_gamma: float = float(parameters.get("gamma", 7.0))
+
     image_geometry_rate = image_rate
     image_height_for_detection = 500
 
@@ -85,7 +88,7 @@ def cv_processing(
     image = imutils.resize(image, height=image_height_for_detection)
     # image = cv2.resize(image, (0, 0), fx=scale, fy=scale)
 
-    image = cv_gamma(image, 7)
+    image = cv_gamma(image, image_gamma)
 
     #################################################################
     # Image Processing
@@ -119,9 +122,9 @@ def cv_processing(
     if debug:
         # Show the image and all the contours
         cv2.imshow("Image", imutils.resize(image, height=500))
-        cv2.drawContours(image, contours, -1, green, 3)
+        cv2.drawContours(image, contours, -1, green_color, 3)
         cv2.imshow("All contours", imutils.resize(image, height=500))
-        cv2.waitKey(0)
+        cv2.waitKey(5000)
         cv2.destroyAllWindows()
 
     #################################################################
@@ -145,13 +148,19 @@ def cv_processing(
     coef_y = orig_image.shape[0] / image.shape[0]
     coef_x = orig_image.shape[1] / image.shape[1]
 
-    for contour in doc_cnts:
-        contour[:, 0] = contour[:, 0] * coef_y
-        contour[:, 1] = contour[:, 1] * coef_x
+    try:
+        for contour in doc_cnts:
+            contour[:, 0] = contour[:, 0] * coef_y
+            contour[:, 1] = contour[:, 1] * coef_x
+    except UnboundLocalError:
+        print(
+            "*******  NOT FOUND contours, try to change gamma parameter. Image SKIPPED."
+        )
+        return
 
     # We draw the contours on the original image not the modified one
 
-    orig_image_c = cv2.drawContours(orig_image.copy(), [doc_cnts], -1, green, 30)
+    orig_image_c = cv2.drawContours(orig_image.copy(), [doc_cnts], -1, green_color, 30)
 
     if debug:
         cv2.imshow("Contours of the document", imutils.resize(orig_image_c, height=500))
@@ -174,17 +183,17 @@ def cv_processing(
     if debug:
         # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
         cv2.imshow("Scanned", imutils.resize(warped, height=750))
-        cv2.waitKey(0)
+        cv2.waitKey(5000)
         cv2.destroyAllWindows()
 
     cv2.imwrite(output_file, warped)
 
 
 @dur_datetime
-def im_scan(file_path: Path, output: Path, debug: bool = False):
-    print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
+def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = False):
+    # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     size = file_path.stat().st_size
     modified = str(datetime.fromtimestamp(file_path.stat().st_mtime))
     print(f"{size=} bytes, {modified=}")
-    cv_processing(file_path, output, debug=debug)
+    cv_processing(file_path, output, parameters=parameters, debug=debug)
     # sleep(randrange(5, 40) / 10.0)

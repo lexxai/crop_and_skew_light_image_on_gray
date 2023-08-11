@@ -36,7 +36,11 @@ def print_datetime(func):
 
 @exception_keyboard
 def scan_file_dir(
-    output_dir: str, im_file_path: str = None, im_dir: str = None, debug: bool = False
+    output_dir: str,
+    im_file_path: str = None,
+    im_dir: str = None,
+    parameters: dict = {},
+    debug: bool = False,
 ):
     VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
 
@@ -50,7 +54,7 @@ def scan_file_dir(
             return
 
         if im_file.exists() and im_file.is_file():
-            im_scan(im_file, path_out, debug=debug)
+            im_scan(im_file, path_out, parameters=parameters, debug=debug)
         else:
             print(f"File '{im_file_path}' not found")
             return
@@ -92,7 +96,11 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                im_scan(im, path_out)
+                im_scan(
+                    im,
+                    path_out,
+                    parameters=parameters,
+                )
             # sleep(2)
 
 
@@ -102,9 +110,24 @@ def app_arg():
     group.add_argument("--images", help="Directory of images to be scanned")
     group.add_argument("--image", help="Path to single image to be scanned")
     ap.add_argument(
+        "--gamma",
+        default="7.0",
+        help="Gamma image correction, default: '7.0'",
+    )
+    ap.add_argument(
+        "--rate",
+        default="1.294",
+        help="desired image rate correction W to H, default: '1.294'",
+    )
+    ap.add_argument(
         "--output",
         default="output",
         help="Path to output result images, default: 'output'",
+    )
+    ap.add_argument(
+        "--debug",
+        action="store_true",
+        help="debug, CV operation for one image only",
     )
     # args = vars(ap.parse_args())
     args = ap.parse_args()
@@ -118,11 +141,12 @@ def app_arg():
 
 def cli():
     args = app_arg()
-    scan_file_dir(args.output, args.image, args.images)
+    parameters = {"gamma": float(args.gamma), "rate": float(args.rate)}
+    scan_file_dir(
+        args.output, args.image, args.images, parameters=parameters, debug=args.debug
+    )
     d = datetime.datetime.now()
     print(d)
-    print(f"{__package__} : cli, delay 3 sec")
-    sleep(5)  # Sleep for 3 seconds
 
 
 if __name__ == "__main__":
