@@ -137,7 +137,7 @@ def app_arg():
     ap.add_argument(
         "--output",
         default="output",
-        help="Path to output result images, default: 'output'",
+        help="Directory to output result images, default: 'output'",
     )
     ap.add_argument(
         "--gamma",
