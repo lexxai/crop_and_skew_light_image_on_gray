@@ -66,7 +66,7 @@ def scan_file_dir(
     if im_file_path:
         im_file = Path(im_file_path)
         if im_file.suffix.lower() not in VALID_FORMATS:
-            print(f"File '{im_file_path}' not is {VALID_FORMATS}")
+            print(f"[bold red]File '{im_file_path}' not is {VALID_FORMATS}[/bold red]")
             return
 
         if im_file.exists() and im_file.is_file():
