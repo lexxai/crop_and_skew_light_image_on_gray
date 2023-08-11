@@ -145,6 +145,11 @@ def app_arg():
         help="Gamma image correction, default: '7.0'",
     )
     ap.add_argument(
+        "--morph",
+        default="35",
+        help="morph image correction for smooth contours, default: '35'",
+    )
+    ap.add_argument(
         "--ratio",
         default="1.294",
         help="desired image aspect ratio correction W to H, default: '1.294'",
@@ -172,7 +177,11 @@ def cli():
         print(get_version())
         return
 
-    parameters = {"gamma": float(args.gamma), "ratio": float(args.ratio)}
+    parameters = {
+        "gamma": float(args.gamma),
+        "ratio": float(args.ratio),
+        "morph": int(args.morph),
+    }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
     )

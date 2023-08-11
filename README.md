@@ -5,7 +5,7 @@ Using Python and OpenCV to detect the border of a white image on a gray backgrou
 ## help
 
 ```
-usage: ai_crop_images [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--ratio RATIO] [--debug]
+usage: ai_crop_images [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--morph MORPH] [--ratio RATIO] [--debug]
 
 options:
   -h, --help       show this help message and exit
@@ -13,6 +13,7 @@ options:
   --image IMAGE    Path to single image to be scanned
   --output OUTPUT  Path to output result images, default: 'output'
   --gamma GAMMA    Gamma image correction, default: '7.0'
+  --morph MORPH    morph image correction for smooth contours, default: '35'
   --ratio RATIO    desired image aspect ratio correction W to H, default: '1.294'
   --debug          debug, CV operation for single image only
 

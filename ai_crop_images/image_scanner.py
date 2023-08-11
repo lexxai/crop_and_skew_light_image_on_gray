@@ -80,6 +80,7 @@ def cv_processing(
 
     image_ratio: float = float(parameters.get("ratio", 1.294))
     image_gamma: float = float(parameters.get("gamma", 7.0))
+    image_morph: int = int(parameters.get("morph", 35))
 
     image_geometry_ratio = image_ratio
     image_height_for_detection = 500
@@ -100,7 +101,7 @@ def cv_processing(
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # convert the image to gray scale
     blur = cv2.GaussianBlur(gray, (5, 5), 0)  # Add Gaussian blur
 
-    MORPH = 9
+    MORPH = image_morph
 
     # dilate helps to remove potential holes between edge segments
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (MORPH, MORPH))
