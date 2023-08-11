@@ -67,6 +67,9 @@ def cv_processing(
     parameters: dict = {},
     debug: bool = False,
 ):
+    MIN_WIDTH: int = 300
+    MIN_HEIGHT: int = 300
+
     #################################################################
     # Load the Image
     #################################################################
@@ -96,6 +99,13 @@ def cv_processing(
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # convert the image to gray scale
     blur = cv2.GaussianBlur(gray, (5, 5), 0)  # Add Gaussian blur
+
+    MORPH = 9
+
+    # dilate helps to remove potential holes between edge segments
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (MORPH, MORPH))
+    blur = cv2.morphologyEx(blur, cv2.MORPH_CLOSE, kernel)
+
     edged = cv2.Canny(blur, 75, 200)  # Apply the Canny algorithm to find the edges
 
     # Show the image and the edges
@@ -154,9 +164,10 @@ def cv_processing(
             contour[:, 1] = contour[:, 1] * coef_x
     except UnboundLocalError:
         print(
-            "*******  NOT FOUND contours, try to change gamma parameter. Image SKIPPED."
+            "[bold red]*******  NOT FOUND contours[/bold red], "
+            "try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
         )
-        return
+        return False
 
     # We draw the contours on the original image not the modified one
 
@@ -177,16 +188,32 @@ def cv_processing(
 
     # convert the warped image to grayscale
     # warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-    print(f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} ")
-    print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
-
     if debug:
         # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
         cv2.imshow("Scanned", imutils.resize(warped, height=750))
         cv2.waitKey(5000)
         cv2.destroyAllWindows()
 
-    cv2.imwrite(output_file, warped)
+    print(f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} ")
+    print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
+
+    if warped.shape[:2] == orig_image.shape[:2]:
+        print(
+            "[bold red]******   Result is same as ORIGINAL[/bold red]"
+            " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+        )
+        return False
+
+    w, h = warped.shape[:2]
+    if w < MIN_WIDTH or h < MIN_HEIGHT:
+        print(
+            f"[bold red]******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )[/bold red]"
+            " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+        )
+        return False
+
+    result = cv2.imwrite(output_file, warped)
+    return result
 
 
 @dur_datetime
@@ -196,5 +223,4 @@ def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = 
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%x %X")
     modified = str(date_m)
     print(f"File: '{file_path.name}' {size=} bytes, {modified=}")
-    cv_processing(file_path, output, parameters=parameters, debug=debug)
-    # sleep(randrange(5, 40) / 10.0)
+    return cv_processing(file_path, output, parameters=parameters, debug=debug)
