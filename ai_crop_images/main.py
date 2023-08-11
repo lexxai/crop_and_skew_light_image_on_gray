@@ -45,6 +45,8 @@ def scan_file_dir(
     VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
 
     path_out = Path(output_dir)
+    if not path_out.exists():
+        path_out.mkdir()
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
@@ -110,6 +112,11 @@ def app_arg():
     group.add_argument("--images", help="Directory of images to be scanned")
     group.add_argument("--image", help="Path to single image to be scanned")
     ap.add_argument(
+        "--output",
+        default="output",
+        help="Path to output result images, default: 'output'",
+    )
+    ap.add_argument(
         "--gamma",
         default="7.0",
         help="Gamma image correction, default: '7.0'",
@@ -120,14 +127,9 @@ def app_arg():
         help="desired image rate correction W to H, default: '1.294'",
     )
     ap.add_argument(
-        "--output",
-        default="output",
-        help="Path to output result images, default: 'output'",
-    )
-    ap.add_argument(
         "--debug",
         action="store_true",
-        help="debug, CV operation for one image only",
+        help="debug, CV operation for single image only",
     )
     # args = vars(ap.parse_args())
     args = ap.parse_args()
