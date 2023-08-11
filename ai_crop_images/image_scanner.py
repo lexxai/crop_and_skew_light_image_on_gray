@@ -184,6 +184,13 @@ def cv_processing(
     print(f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} ")
     print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
 
+    if warped.shape[:2] == orig_image.shape[:2]:
+        print(
+            "[bold red]******   Result is same as ORIGINAL[/bold red]"
+            " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+        )
+        return
+
     w, h = warped.shape[:2]
     if w < MIN_WIDTH or h < MIN_HEIGHT:
         print(
