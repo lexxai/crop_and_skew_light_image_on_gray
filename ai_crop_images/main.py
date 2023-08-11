@@ -14,6 +14,8 @@ def exception_keyboard(func):
         except KeyboardInterrupt:
             print("EXIT !!!")
             exit()
+        except Exception as e:
+            print(f"ERROR: {e}")
 
     return wrapper
 
@@ -34,11 +36,11 @@ def print_datetime(func):
 
 @exception_keyboard
 def scan_file_dir(
-    output_dir: str,
-    im_file_path: str = None,
-    im_dir: str = None,
+    output_dir: str, im_file_path: str = None, im_dir: str = None, debug: bool = False
 ):
     VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
+
+    path_out = Path(output_dir)
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
@@ -48,7 +50,7 @@ def scan_file_dir(
             return
 
         if im_file.exists() and im_file.is_file():
-            im_scan(im_file)
+            im_scan(im_file, path_out, debug=debug)
         else:
             print(f"File '{im_file_path}' not found")
             return
@@ -62,7 +64,6 @@ def scan_file_dir(
             filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_in.glob("*.*"))
         )
 
-        path_out = Path(output_dir)
         output_files = path_in.glob("*.*")
 
         output_files = list(
@@ -91,7 +92,7 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                im_scan(im)
+                im_scan(im, path_out)
             # sleep(2)
 
 
