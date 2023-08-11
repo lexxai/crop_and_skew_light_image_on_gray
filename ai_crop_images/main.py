@@ -18,10 +18,10 @@ def exception_keyboard(func):
         try:
             func(*args, **kwargs)
         except KeyboardInterrupt:
-            print("EXIT !!!")
+            print("EXIT")
             exit()
         except Exception as e:
-            print(f"ERROR: {e}")
+            print(f"[bold red]ERROR: {e}[/bold red]")
 
     return wrapper
 
@@ -72,14 +72,14 @@ def scan_file_dir(
         if im_file.exists() and im_file.is_file():
             im_scan(im_file, path_out, parameters=parameters, debug=debug)
         else:
-            print(f"File '{im_file_path}' not found")
+            print(f"[bold red]File '{im_file_path}' not found[/bold red]")
             return
 
     # Scan all valid images in directory specified by command line argument --images <IMAGE_DIR>
     else:
         path_in = Path(im_dir)
         if not path_in.exists():
-            print(f"Folder '{im_dir}' not found")
+            print(f"[bold red]Folder '{im_dir}' not found[/bold red]")
             return
 
         im_files = path_in.glob("*.*")

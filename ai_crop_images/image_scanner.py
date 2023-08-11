@@ -67,6 +67,9 @@ def cv_processing(
     parameters: dict = {},
     debug: bool = False,
 ):
+    MIN_WIDTH: int = 300
+    MIN_HEIGHT: int = 300
+
     #################################################################
     # Load the Image
     #################################################################
@@ -154,7 +157,8 @@ def cv_processing(
             contour[:, 1] = contour[:, 1] * coef_x
     except UnboundLocalError:
         print(
-            "*******  NOT FOUND contours, try to change gamma parameter. Image SKIPPED."
+            "[bold red]*******  NOT FOUND contours[/bold red], "
+            "try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
         )
         return
 
@@ -179,6 +183,14 @@ def cv_processing(
     # warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
     print(f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} ")
     print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
+
+    w, h = warped.shape[:2]
+    if w < MIN_WIDTH or h < MIN_HEIGHT:
+        print(
+            f"[bold red]******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )[/bold red]"
+            " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+        )
+        return
 
     if debug:
         # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
