@@ -42,21 +42,32 @@ def scan_file_dir(
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
-        im_scan(im_file_path)
-        ...
+        im_file = Path(im_file_path)
+        if im_file.suffix.lower() not in VALID_FORMATS:
+            print(f"File '{im_file_path}' not is {VALID_FORMATS}")
+            return
+
+        if im_file.exists() and im_file.is_file():
+            im_scan(im_file)
+        else:
+            print(f"File '{im_file_path}' not found")
+            return
 
     # Scan all valid images in directory specified by command line argument --images <IMAGE_DIR>
     else:
         path_in = Path(im_dir)
         im_files = path_in.glob("*.*")
 
-        im_files = [f for f in path_in.glob("*.*") if f.suffix.lower() in VALID_FORMATS]
+        im_files = list(
+            filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_in.glob("*.*"))
+        )
 
         path_out = Path(output_dir)
         output_files = path_in.glob("*.*")
-        output_files = [
-            f for f in path_out.glob("*.*") if f.suffix.lower() in VALID_FORMATS
-        ]
+
+        output_files = list(
+            filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_out.glob("*.*"))
+        )
 
         im_files_not_pass = []
         for i in im_files:
@@ -79,7 +90,8 @@ def scan_file_dir(
         for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
-            im_scan(im)
+            if im.is_file():
+                im_scan(im)
             # sleep(2)
 
 
