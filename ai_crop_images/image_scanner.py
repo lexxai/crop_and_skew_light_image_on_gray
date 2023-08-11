@@ -99,6 +99,13 @@ def cv_processing(
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # convert the image to gray scale
     blur = cv2.GaussianBlur(gray, (5, 5), 0)  # Add Gaussian blur
+
+    MORPH = 9
+
+    # dilate helps to remove potential holes between edge segments
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (MORPH, MORPH))
+    blur = cv2.morphologyEx(blur, cv2.MORPH_CLOSE, kernel)
+
     edged = cv2.Canny(blur, 75, 200)  # Apply the Canny algorithm to find the edges
 
     # Show the image and the edges
