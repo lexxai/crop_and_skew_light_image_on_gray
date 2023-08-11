@@ -181,6 +181,12 @@ def cv_processing(
 
     # convert the warped image to grayscale
     # warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+    if debug:
+        # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
+        cv2.imshow("Scanned", imutils.resize(warped, height=750))
+        cv2.waitKey(5000)
+        cv2.destroyAllWindows()
+
     print(f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} ")
     print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
 
@@ -198,12 +204,6 @@ def cv_processing(
             " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
         )
         return False
-
-    if debug:
-        # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
-        cv2.imshow("Scanned", imutils.resize(warped, height=750))
-        cv2.waitKey(5000)
-        cv2.destroyAllWindows()
 
     result = cv2.imwrite(output_file, warped)
     return result
