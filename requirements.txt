@@ -1,0 +1,7 @@
+importlib-metadata >= 1.0 ; python_version < "3.8"
+progressbar2 >= 4.2.0
+rich >= 13.5.0
+imutils >= 0.5.0
+numpy >= 1.25.0
+opencv-python >= 4.8.0
+scipy >= 1.11.0
