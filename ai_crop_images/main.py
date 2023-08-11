@@ -131,13 +131,9 @@ def app_arg():
         action="store_true",
         help="debug, CV operation for single image only",
     )
-    # args = vars(ap.parse_args())
     args = ap.parse_args()
 
-    print(args)
-    # im_dir = args.images
-    # im_file_path = args.image
-    # interactive_mode = args.i
+    # print(args)
     return args
 
 
