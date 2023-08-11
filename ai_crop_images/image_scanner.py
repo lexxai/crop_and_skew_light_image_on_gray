@@ -61,6 +61,19 @@ def cv_gamma(image, gamma: float = 7.0):
     return image
 
 
+# https://stackoverflow.com/questions/42257173/contrast-stretching-in-python-opencv
+def cv_normalize_scale(image, beta: float = 1.2):
+    # normalize float versions
+    norm_img = cv2.normalize(
+        image, None, alpha=0, beta=beta, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F
+    )
+
+    # scale to uint8
+    norm_img = np.clip(norm_img, 0, 1)
+    norm_img = (255 * norm_img).astype(np.uint8)
+    return norm_img
+
+
 def cv_processing(
     img_file: Path,
     output: Path,
@@ -93,6 +106,7 @@ def cv_processing(
     # image = cv2.resize(image, (0, 0), fx=scale, fy=scale)
 
     image = cv_gamma(image, image_gamma)
+    image = cv_normalize_scale(image)
 
     #################################################################
     # Image Processing
