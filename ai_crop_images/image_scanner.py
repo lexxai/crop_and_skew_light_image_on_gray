@@ -75,10 +75,10 @@ def cv_processing(
 
     green_color = (0, 255, 0)
 
-    image_rate: float = float(parameters.get("rate", 1.294))
+    image_ratio: float = float(parameters.get("ratio", 1.294))
     image_gamma: float = float(parameters.get("gamma", 7.0))
 
-    image_geometry_rate = image_rate
+    image_geometry_ratio = image_ratio
     image_height_for_detection = 500
 
     image = cv2.imread(input_file)
@@ -171,7 +171,7 @@ def cv_processing(
     w = int(warped.shape[1])
     h = int(warped.shape[0])
 
-    h = int(image_geometry_rate * w)
+    h = int(image_geometry_ratio * w)
 
     warped = cv2.resize(warped, (w, h))
 

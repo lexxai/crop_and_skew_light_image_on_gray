@@ -122,9 +122,9 @@ def app_arg():
         help="Gamma image correction, default: '7.0'",
     )
     ap.add_argument(
-        "--rate",
+        "--ratio",
         default="1.294",
-        help="desired image rate correction W to H, default: '1.294'",
+        help="desired image aspect ratio correction W to H, default: '1.294'",
     )
     ap.add_argument(
         "--debug",
@@ -139,7 +139,7 @@ def app_arg():
 
 def cli():
     args = app_arg()
-    parameters = {"gamma": float(args.gamma), "rate": float(args.rate)}
+    parameters = {"gamma": float(args.gamma), "ratio": float(args.ratio)}
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
     )
