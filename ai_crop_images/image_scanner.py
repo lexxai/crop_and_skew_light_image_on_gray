@@ -193,7 +193,8 @@ def cv_processing(
 def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = False):
     # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     size = file_path.stat().st_size
-    modified = str(datetime.fromtimestamp(file_path.stat().st_mtime))
-    print(f"{size=} bytes, {modified=}")
+    date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%x %X")
+    modified = str(date_m)
+    print(f"File: '{file_path.name}' {size=} bytes, {modified=}")
     cv_processing(file_path, output, parameters=parameters, debug=debug)
     # sleep(randrange(5, 40) / 10.0)
