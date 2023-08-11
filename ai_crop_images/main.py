@@ -4,6 +4,12 @@ import argparse
 from pathlib import Path
 from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
+import sys
+
+if sys.version_info >= (3, 8):
+    from importlib.metadata import version
+else:
+    from importlib_metadata import version
 from rich import print
 
 
@@ -27,6 +33,14 @@ def print_datetime(func):
         func(*args, **kwargs)
 
     return wrapper
+
+
+def get_version():
+    try:
+        version_str = version(__package__)
+    except Exception:
+        version_str = "undefined"
+    return f"Version: '{ version_str }', package: {__package__}"
 
 
 # for i in progressbar(range(100), redirect_stdout=True):
@@ -64,6 +78,10 @@ def scan_file_dir(
     # Scan all valid images in directory specified by command line argument --images <IMAGE_DIR>
     else:
         path_in = Path(im_dir)
+        if not path_in.exists():
+            print(f"Folder '{im_dir}' not found")
+            return
+
         im_files = path_in.glob("*.*")
 
         im_files = list(
@@ -131,6 +149,12 @@ def app_arg():
         action="store_true",
         help="debug, CV operation for single image only",
     )
+    ap.add_argument(
+        "-V",
+        "--version",
+        action="store_true",
+        help="show version",
+    )
     args = ap.parse_args()
 
     # print(args)
@@ -139,6 +163,10 @@ def app_arg():
 
 def cli():
     args = app_arg()
+    if args.version:
+        print(get_version())
+        return
+
     parameters = {"gamma": float(args.gamma), "ratio": float(args.ratio)}
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
