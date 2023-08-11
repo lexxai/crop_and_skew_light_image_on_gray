@@ -160,7 +160,7 @@ def cv_processing(
             "[bold red]*******  NOT FOUND contours[/bold red], "
             "try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
         )
-        return
+        return False
 
     # We draw the contours on the original image not the modified one
 
@@ -189,7 +189,7 @@ def cv_processing(
             "[bold red]******   Result is same as ORIGINAL[/bold red]"
             " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
         )
-        return
+        return False
 
     w, h = warped.shape[:2]
     if w < MIN_WIDTH or h < MIN_HEIGHT:
@@ -197,7 +197,7 @@ def cv_processing(
             f"[bold red]******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )[/bold red]"
             " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
         )
-        return
+        return False
 
     if debug:
         # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
@@ -205,7 +205,8 @@ def cv_processing(
         cv2.waitKey(5000)
         cv2.destroyAllWindows()
 
-    cv2.imwrite(output_file, warped)
+    result = cv2.imwrite(output_file, warped)
+    return result
 
 
 @dur_datetime
@@ -215,5 +216,4 @@ def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = 
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%x %X")
     modified = str(date_m)
     print(f"File: '{file_path.name}' {size=} bytes, {modified=}")
-    cv_processing(file_path, output, parameters=parameters, debug=debug)
-    # sleep(randrange(5, 40) / 10.0)
+    return cv_processing(file_path, output, parameters=parameters, debug=debug)

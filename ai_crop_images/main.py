@@ -112,16 +112,21 @@ def scan_file_dir(
         print(
             f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
         )
+        wrong = []
         for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                im_scan(
+                result = im_scan(
                     im,
                     path_out,
                     parameters=parameters,
                 )
-            # sleep(2)
+                if not result:
+                    wrong.append(im)
+        if wrong:
+            wrong_total = len(wrong)
+            print(f"[yellow]Total SKIPPED files: {wrong_total}[/yellow]")
 
 
 def app_arg():
