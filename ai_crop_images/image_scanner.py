@@ -36,11 +36,13 @@ def end_datetime(func):
 def dur_datetime(func):
     def wrapper(*args, **kwargs):
         d1 = datetime.now()
-        print(f"\n *** Start:  {d1}")
+        d1_fmt = d1.strftime("%Y-%m-%d %H:%M")
+        print(f"\n *** Start:  {d1_fmt}")
         result = func(*args, **kwargs)
         d2 = datetime.now()
         diff = d2 - d1
-        print(f" *** End:  {d2}, duration: {diff}")
+        d2_fmt = d2.strftime("%Y-%m-%d %H:%M")
+        print(f" *** End:  {d2_fmt}, duration: {diff}")
         return result
 
     return wrapper
@@ -88,15 +90,18 @@ def cv_processing(
     #################################################################
     input_file: str = str(img_file)
     output_file: str = str(output.joinpath(img_file.name))
+    warning: bool = False
 
     green_color = (0, 255, 0)
 
     image_ratio: float = float(parameters.get("ratio", 1.294))
     image_gamma: float = float(parameters.get("gamma", 7.0))
     image_morph: int = int(parameters.get("morph", 35))
+    image_normalize_scale: float = float(parameters.get("normalize_scale", 1.0))
+    image_skip_wrong = parameters.get("skip_wrong", False)
+    image_height_for_detection = int(parameters.get("detection_height", 900))
 
     image_geometry_ratio = image_ratio
-    image_height_for_detection = 500
 
     image = cv2.imread(input_file)
 
@@ -105,8 +110,11 @@ def cv_processing(
     image = imutils.resize(image, height=image_height_for_detection)
     # image = cv2.resize(image, (0, 0), fx=scale, fy=scale)
 
-    image = cv_gamma(image, image_gamma)
-    image = cv_normalize_scale(image)
+    if image_gamma != 1.0:
+        image = cv_gamma(image, image_gamma)
+
+    if image_normalize_scale != 1:
+        image = cv_normalize_scale(image, image_normalize_scale)
 
     #################################################################
     # Image Processing
@@ -117,9 +125,10 @@ def cv_processing(
 
     MORPH = image_morph
 
-    # dilate helps to remove potential holes between edge segments
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (MORPH, MORPH))
-    blur = cv2.morphologyEx(blur, cv2.MORPH_CLOSE, kernel)
+    if MORPH > 0:
+        # dilate helps to remove potential holes between edge segments
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (MORPH, MORPH))
+        blur = cv2.morphologyEx(blur, cv2.MORPH_CLOSE, kernel)
 
     edged = cv2.Canny(blur, 75, 200)  # Apply the Canny algorithm to find the edges
 
@@ -178,11 +187,13 @@ def cv_processing(
             contour[:, 0] = contour[:, 0] * coef_y
             contour[:, 1] = contour[:, 1] * coef_x
     except UnboundLocalError:
+        warning = True
         print(
             "[bold red]*******  NOT FOUND contours[/bold red], "
-            "try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+            "try to change gamma parameter."
         )
-        return False
+        print("[bold yellow]Image SKIPPED.[/bold yellow]")
+        return False, warning
 
     # We draw the contours on the original image not the modified one
 
@@ -213,29 +224,37 @@ def cv_processing(
     print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
 
     if warped.shape[:2] == orig_image.shape[:2]:
+        warning = True
         print(
             "[bold red]******   Result is same as ORIGINAL[/bold red]"
-            " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+            " try to change gamma parameter."
         )
-        return False
+        if image_skip_wrong:
+            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            return False, warning
 
     w, h = warped.shape[:2]
     if w < MIN_WIDTH or h < MIN_HEIGHT:
+        warning = True
         print(
             f"[bold red]******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )[/bold red]"
-            " try to change gamma parameter. [bold yellow]Image SKIPPED.[/bold yellow]"
+            " try to change gamma parameter."
         )
-        return False
+        if image_skip_wrong:
+            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            return False, warning
 
     result = cv2.imwrite(output_file, warped)
-    return result
+    return result, warning
 
 
 @dur_datetime
 def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = False):
     # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     size = file_path.stat().st_size
-    date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime("%x %X")
+    date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime(
+        "%Y-%m-%d %H:%M"
+    )
     modified = str(date_m)
     print(f"File: '{file_path.name}' {size=} bytes, {modified=}")
     return cv_processing(file_path, output, parameters=parameters, debug=debug)

@@ -112,21 +112,30 @@ def scan_file_dir(
         print(
             f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
         )
-        wrong = []
+        skipped = []
+        warning = []
         for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                result = im_scan(
+                success, warn = im_scan(
                     im,
                     path_out,
                     parameters=parameters,
                 )
-                if not result:
-                    wrong.append(im)
-        if wrong:
-            wrong_total = len(wrong)
-            print(f"[yellow]Total SKIPPED files: {wrong_total}[/yellow]")
+                if not success:
+                    skipped.append(im)
+                if warn:
+                    warning.append(im)
+
+        if skipped:
+            skipped_total = len(skipped)
+            print(f"[yellow]Total SKIPPED files: {skipped_total}[/yellow]")
+            print("\n".join([f.name for f in skipped]))
+        elif warning:
+            warning_total = len(warning)
+            print(f"[yellow]Total WARNING files: {warning_total}[/yellow]")
+            print("\n".join([f.name for f in warning]))
 
 
 def app_arg():
@@ -142,12 +151,24 @@ def app_arg():
     ap.add_argument(
         "--gamma",
         default="7.0",
-        help="Gamma image correction, default: '7.0'",
+        help="Gamma image correction pre-filter, default: '7.0', 1 - Off",
     )
     ap.add_argument(
         "--morph",
         default="35",
-        help="morph image correction for smooth contours, default: '35'",
+        help="morph image correction for smooth contours, default: '35'. 0 - Off",
+    )
+    ap.add_argument(
+        "--normalize",
+        default="1",
+        help="normalize_scale image correction pre-filter, "
+        "default: '1'. 1 - Off, 1.2 - for start",
+    )
+    ap.add_argument(
+        "--height",
+        default="900",
+        help="For detection used image that downscale to this height, "
+        "default: '900'.",
     )
     ap.add_argument(
         "--ratio",
@@ -158,6 +179,12 @@ def app_arg():
         "--debug",
         action="store_true",
         help="debug, CV operation for single image only",
+    )
+    ap.add_argument(
+        "--skip",
+        action="store_false",
+        help="skip wrong images, like result same size, "
+        "or result less than 300x300, default not skipped",
     )
     ap.add_argument(
         "-V",
@@ -181,12 +208,15 @@ def cli():
         "gamma": float(args.gamma),
         "ratio": float(args.ratio),
         "morph": int(args.morph),
+        "normalize_scale": float(args.normalize),
+        "skip_wrong": args.skip,
+        "detection_height": args.height,
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
     )
-    d = datetime.datetime.now()
-    print(d)
+    d = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    print(f"\nEND: {d}")
 
 
 if __name__ == "__main__":

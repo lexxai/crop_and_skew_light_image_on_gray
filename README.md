@@ -5,17 +5,23 @@ Using Python and OpenCV to detect the border of a white image on a gray backgrou
 ## help
 
 ```
-usage: ai_crop_images [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--morph MORPH] [--ratio RATIO] [--debug]
+usage: ai_crop_images  [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--morph MORPH] [--normalize NORMALIZE]
+                  [--height HEIGHT] [--ratio RATIO] [--debug] [--skip] [-V]
 
 options:
-  -h, --help       show this help message and exit
-  --images IMAGES  Directory of images to be scanned
-  --image IMAGE    Path to single image to be scanned
-  --output OUTPUT  Path to output result images, default: 'output'
-  --gamma GAMMA    Gamma image correction, default: '7.0'
-  --morph MORPH    morph image correction for smooth contours, default: '35'
-  --ratio RATIO    desired image aspect ratio correction W to H, default: '1.294'
-  --debug          debug, CV operation for single image only
+  -h, --help            show this help message and exit
+  --images IMAGES       Directory of images to be scanned
+  --image IMAGE         Path to single image to be scanned
+  --output OUTPUT       Directory to output result images, default: 'output'
+  --gamma GAMMA         Gamma image correction pre-filter, default: '7.0', 1 - Off
+  --morph MORPH         morph image correction for smooth contours, default: '35'. 0 - Off
+  --normalize NORMALIZE
+                        normalize_scale image correction pre-filter, default: '1'. 1 - Off, 1.2 - for start
+  --height HEIGHT       For detection used image that downscale to this height, default: '900'.
+  --ratio RATIO         desired image aspect ratio correction W to H, default: '1.294'
+  --debug               debug, CV operation for single image only
+  --skip                skip wrong images, like result same size, or result less than 300x300, default not skipped
+  -V, --version         show version
 
 ```
 
