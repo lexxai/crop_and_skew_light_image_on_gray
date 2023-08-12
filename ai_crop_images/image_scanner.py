@@ -100,8 +100,6 @@ def cv_processing(
         bool: result of operation, True file saved
         bool: warning if was problem with file but it skipped
     """
-    MIN_WIDTH: int = 300
-    MIN_HEIGHT: int = 300
 
     input_file: str = str(img_file)
     output_file: str = str(output.joinpath(img_file.name))
@@ -117,6 +115,9 @@ def cv_processing(
     image_height_for_detection = int(parameters.get("detection_height", 900))
 
     image_geometry_ratio = image_ratio
+
+    MIN_HEIGHT: int = int(parameters.get("min_height", 1000))
+    MIN_WIDTH: int = round(MIN_HEIGHT / image_ratio)
 
     #################################################################
     # Load the Image
@@ -270,7 +271,7 @@ def cv_processing(
             print("[bold yellow]Image SKIPPED.[/bold yellow]")
             return False, warning
 
-    w, h = warped.shape[:2]
+    h, w = warped.shape[:2]
     if w < MIN_WIDTH or h < MIN_HEIGHT:
         warning = True
         print(

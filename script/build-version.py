@@ -20,4 +20,4 @@ pyinstaller_versionfile.create_versionfile(
     product_name="ai_crop_images",
 )
 
-print(f"Done: versionfile.txt in parent folder. version=f'{ver}.0'")
+print(f"Done: versionfile.txt in parent folder. version='{ver}.0'")

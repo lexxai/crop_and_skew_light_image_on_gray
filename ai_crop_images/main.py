@@ -1,4 +1,4 @@
-from time import sleep
+# from time import sleep
 import datetime
 import argparse
 from pathlib import Path
@@ -6,11 +6,12 @@ from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
 import sys
 
+from rich import print
+
 if sys.version_info >= (3, 8):
     from importlib.metadata import version
 else:
     from importlib_metadata import version
-from rich import print
 
 
 def exception_keyboard(func):
@@ -58,16 +59,24 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
     Returns:
         tuple[dict, float]: copy parameter , id of next steps
     """
-    STEPS = (-1, 1, -2, 2, -3, 3, -4, 4)
+    STEPS = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
 
-    gamma = parameter["gamma"]
+    gamma_start = parameter["gamma"]
     if id is not None:
         if id < len(STEPS):
             parameter_copy = parameter.copy()
-            step = STEPS[id]
-            gamma += step
-            parameter_copy["gamma"] = gamma
-            return parameter_copy, id + 1
+            while True:
+                if id >= len(STEPS):
+                    return None, None
+                step = STEPS[id]
+                gamma = gamma_start + step
+                print(f"tune_parameter_gamma id={id+1}, {step=}, {gamma=} {gamma>1}")
+                if gamma > 1:
+                    parameter_copy["gamma"] = gamma
+                    return parameter_copy, id + 1
+                else:
+                    id += 1
+
         else:
             return None, None
 
@@ -149,19 +158,23 @@ def scan_file_dir(
                 success = None
                 warn = None
                 while not is_done:
-                    parameters, iteration = tune_parameter_gamma(parameters, iteration)
-                    gamma = parameters["gamma"]
-                    print(f"[green]# {iteration=}, {gamma=}[/green]")
-                    if parameters:
+                    parameters_work, iteration = tune_parameter_gamma(
+                        parameters, iteration
+                    )
+                    if parameters_work is not None:
+                        gamma = parameters_work["gamma"]
+                        print(f"\n[green]# {iteration=}, {gamma=}[/green]")
                         success, warn = im_scan(
                             im,
                             path_out,
-                            parameters=parameters,
+                            parameters=parameters_work,
                         )
-                        if success:
+                        if not warn:
                             is_done = True
                     else:
-                        print("[red]All iterations failed, operation failed[/red]")
+                        print(
+                            "\n[red] ***** All iterations failed, operation failed[/red]\n"
+                        )
                         break
 
                 if not success:
@@ -206,15 +219,19 @@ def app_arg():
         "default: '1'. 1 - Off, 1.2 - for start",
     )
     ap.add_argument(
-        "--height",
-        default="900",
-        help="For detection used image that downscale to this height, "
-        "default: '900'.",
-    )
-    ap.add_argument(
         "--ratio",
         default="1.294",
-        help="desired image aspect ratio correction W to H, default: '1.294'",
+        help="desired correction of the image aspect ratio H to W, default: '1.294'",
+    )
+    ap.add_argument(
+        "--min_height",
+        default="1000",
+        help="desired minimum height of the output image in px, default: '1000'",
+    )
+    ap.add_argument(
+        "--detection_height",
+        default="900",
+        help="internally downscale the original image to this height in px for the found border, default: '900'",
     )
     ap.add_argument(
         "--debug",
@@ -224,8 +241,8 @@ def app_arg():
     ap.add_argument(
         "--noskip",
         action="store_true",
-        help="no skip wrong images, like result same size, "
-        "or result less than 300x300. Copy original if problem. Default: skipped",
+        help="no skip wrong images, like output same size, "
+        "or result less than 800x1000. Copy original if problem. Default: skipped",
     )
     ap.add_argument(
         "-V",
@@ -247,11 +264,12 @@ def cli():
 
     parameters = {
         "gamma": float(args.gamma),
+        "min_height ": int(args.min_height),
         "ratio": float(args.ratio),
         "morph": int(args.morph),
         "normalize_scale": float(args.normalize),
         "skip_wrong": not args.noskip,
-        "detection_height": args.height,
+        "detection_height": int(args.detection_height),
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
