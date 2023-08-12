@@ -22,6 +22,11 @@ options:
                         desired minimum height of the output image in px, default: '1000'
   --detection_height DETECTION_HEIGHT
                         internally downscale the original image to this height in px for the found border, default: '900'
+  --ratio RATIO         desired correction of the image aspect ratio H to W, default: '1.294'
+  --min_height MIN_HEIGHT
+                        desired minimum height of the output image in px, default: '1000'
+  --detection_height DETECTION_HEIGHT
+                        internally downscale the original image to this height in px for the found border, default: '900'
   --debug               debug, CV operation for single image only
   --noskip              no skip wrong images, like output same size, or result less than 800x1000. Copy original if problem. Default: skipped
   -V, --version         show version
