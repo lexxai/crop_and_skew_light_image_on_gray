@@ -20,8 +20,8 @@ def exception_keyboard(func):
         except KeyboardInterrupt:
             print("EXIT")
             exit()
-        except Exception as e:
-            print(f"[bold red]ERROR: {e}[/bold red]")
+        # except Exception as e:
+        #     print(f"[bold red]ERROR: {e}[/bold red]")
 
     return wrapper
 
@@ -132,7 +132,7 @@ def scan_file_dir(
             skipped_total = len(skipped)
             print(f"[yellow]Total SKIPPED files: {skipped_total}[/yellow]")
             print("\n".join([f.name for f in skipped]))
-        elif warning:
+        if warning:
             warning_total = len(warning)
             print(f"[yellow]Total WARNING files: {warning_total}[/yellow]")
             print("\n".join([f.name for f in warning]))
@@ -181,10 +181,10 @@ def app_arg():
         help="debug, CV operation for single image only",
     )
     ap.add_argument(
-        "--skip",
-        action="store_false",
-        help="skip wrong images, like result same size, "
-        "or result less than 300x300, default not skipped",
+        "--noskip",
+        action="store_true",
+        help="no skip wrong images, like result same size, "
+        "or result less than 300x300. Copy original if problem. Default: skipped",
     )
     ap.add_argument(
         "-V",
@@ -209,7 +209,7 @@ def cli():
         "ratio": float(args.ratio),
         "morph": int(args.morph),
         "normalize_scale": float(args.normalize),
-        "skip_wrong": args.skip,
+        "skip_wrong": not args.noskip,
         "detection_height": args.height,
     }
     scan_file_dir(

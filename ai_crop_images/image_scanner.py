@@ -9,6 +9,8 @@ from imutils.perspective import four_point_transform
 import imutils
 import cv2
 from pathlib import Path
+import shutil
+import types
 
 # import os
 import numpy as np
@@ -48,6 +50,13 @@ def dur_datetime(func):
     return wrapper
 
 
+def copy_original(input_file: str, output_file: str) -> bool:
+    print(
+        f"[red] Problem read file '{input_file}', then just copy original to destianton [/red]"
+    )
+    return shutil.copyfile(input_file, output_file)
+
+
 # GAMMA CODE : https://stackoverflow.com/questions/26912869/color-levels-in-opencv
 def cv_gamma(image, gamma: float = 7.0):
     inBlack = np.array([0, 0, 0], dtype=np.float32)
@@ -77,17 +86,23 @@ def cv_normalize_scale(image, beta: float = 1.2):
 
 
 def cv_processing(
-    img_file: Path,
-    output: Path,
-    parameters: dict = {},
-    debug: bool = False,
-):
+    img_file: Path, output: Path, parameters: dict = {}, debug: bool = False
+) -> tuple[bool, bool]:
+    """cv_processing of image with saving file if all ok.
+
+    Args:
+        img_file (Path): Path to input single file
+        output (Path): Path to saved folder
+        parameters (dict): Dict of parameters. Defaults to {},
+        debug (bool): flash debug CV diagnostic. Defaults to False
+
+    Returns:
+        bool: result of operation, True file saved
+        bool: warning if was problem with file but it skipped
+    """
     MIN_WIDTH: int = 300
     MIN_HEIGHT: int = 300
 
-    #################################################################
-    # Load the Image
-    #################################################################
     input_file: str = str(img_file)
     output_file: str = str(output.joinpath(img_file.name))
     warning: bool = False
@@ -103,7 +118,26 @@ def cv_processing(
 
     image_geometry_ratio = image_ratio
 
-    image = cv2.imread(input_file)
+    #################################################################
+    # Load the Image
+    #################################################################
+    try:
+        image = cv2.imread(input_file)
+    except Exception as e:
+        print(f"CV INPUT ERRROR {e}")
+        if not image_skip_wrong:
+            copy_original(input_file, output_file)
+            return True, True
+        return False, True
+
+    if isinstance(image, types.NoneType):
+        print(
+            f"[red]CV INPUT ERRROR read [/red]'{input_file}' image == None. skip: {image_skip_wrong}"
+        )
+        if not image_skip_wrong:
+            copy_original(input_file, output_file)
+            return True, True
+        return False, True
 
     orig_image = image.copy()
 
@@ -192,6 +226,9 @@ def cv_processing(
             "[bold red]*******  NOT FOUND contours[/bold red], "
             "try to change gamma parameter."
         )
+        if not image_skip_wrong:
+            copy_original(input_file, output_file)
+            return True, True
         print("[bold yellow]Image SKIPPED.[/bold yellow]")
         return False, warning
 
@@ -243,6 +280,15 @@ def cv_processing(
         if image_skip_wrong:
             print("[bold yellow]Image SKIPPED.[/bold yellow]")
             return False, warning
+
+    if isinstance(warped, types.NoneType):
+        print(
+            f"[red]CV warped ERRROR[/red]'{input_file}' warped == None. skip: {image_skip_wrong}"
+        )
+        if not image_skip_wrong:
+            copy_original(input_file, output_file)
+            return True, True
+        return False, True
 
     result = cv2.imwrite(output_file, warped)
     return result, warning
