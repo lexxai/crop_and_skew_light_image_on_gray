@@ -1,6 +1,6 @@
-# crop_and_skew_white_image_on_gray
+# crop_and_skew_light_image_on_gray
 
-Using Python and OpenCV to detect the border of a white image on a gray background, crops and corrects its geometry.
+Using Python and OpenCV to detect the border of a light image on a gray background, crops and corrects its geometry.
 
 ## help
 
@@ -17,11 +17,6 @@ options:
   --morph MORPH         morph image correction for smooth contours, default: '35'. 0 - Off
   --normalize NORMALIZE
                         normalize_scale image correction pre-filter, default: '1'. 1 - Off, 1.2 - for start
-  --ratio RATIO         desired correction of the image aspect ratio H to W, default: '1.294'
-  --min_height MIN_HEIGHT
-                        desired minimum height of the output image in px, default: '1000'
-  --detection_height DETECTION_HEIGHT
-                        internally downscale the original image to this height in px for the found border, default: '900'
   --ratio RATIO         desired correction of the image aspect ratio H to W, default: '1.294'
   --min_height MIN_HEIGHT
                         desired minimum height of the output image in px, default: '1000'
