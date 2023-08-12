@@ -48,6 +48,32 @@ def get_version():
 #     sleep(0.1)
 
 
+def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
+    """_summary_
+
+    Args:
+        parameter (dict): parameters dict
+        id (int): id of steps
+
+    Returns:
+        tuple[dict, float]: copy parameter , id of next steps
+    """
+    STEPS = (-1, 1, -2, 2, -3, 3, -4, 4)
+
+    gamma = parameter["gamma"]
+    if id is not None:
+        if id < len(STEPS):
+            parameter_copy = parameter.copy()
+            step = STEPS[id]
+            gamma += step
+            parameter_copy["gamma"] = gamma
+            return parameter_copy, id + 1
+        else:
+            return None, None
+
+    return parameter, id
+
+
 @exception_keyboard
 def scan_file_dir(
     output_dir: str,
@@ -118,11 +144,26 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                success, warn = im_scan(
-                    im,
-                    path_out,
-                    parameters=parameters,
-                )
+                is_done = False
+                iteration = 0
+                success = None
+                warn = None
+                while not is_done:
+                    parameters, iteration = tune_parameter_gamma(parameters, iteration)
+                    gamma = parameters["gamma"]
+                    print(f"[green]# {iteration=}, {gamma=}[/green]")
+                    if parameters:
+                        success, warn = im_scan(
+                            im,
+                            path_out,
+                            parameters=parameters,
+                        )
+                        if success:
+                            is_done = True
+                    else:
+                        print("[red]All iterations failed, operation failed[/red]")
+                        break
+
                 if not success:
                     skipped.append(im)
                 if warn:
