@@ -58,7 +58,7 @@ def copy_original(input_file: str, output_file: str) -> bool:
 
 
 # GAMMA CODE : https://stackoverflow.com/questions/26912869/color-levels-in-opencv
-def cv_gamma(image, gamma: float = 7.0):
+def cv_gamma(image, gamma: float = 4.0):
     inBlack = np.array([0, 0, 0], dtype=np.float32)
     inWhite = np.array([255, 255, 255], dtype=np.float32)
     inGamma = np.array([1.0, 1.0, 1.0], dtype=np.float32)
@@ -108,7 +108,7 @@ def cv_processing(
     green_color = (0, 255, 0)
 
     image_ratio: float = float(parameters.get("ratio", 1.294))
-    image_gamma: float = float(parameters.get("gamma", 7.0))
+    image_gamma: float = float(parameters.get("gamma", 4.0))
     image_morph: int = int(parameters.get("morph", 35))
     image_normalize_scale: float = float(parameters.get("normalize_scale", 1.0))
     image_skip_wrong = parameters.get("skip_wrong", False)
@@ -201,6 +201,7 @@ def cv_processing(
     #################################################################
 
     # go through each contour
+    contours_found = False
     for contour in contours:
         # we approximate the contour
         peri = cv2.arcLength(contour, True)
@@ -209,6 +210,7 @@ def cv_processing(
         # (we can assume that we have found our document)
         if len(approx) == 4:
             doc_cnts = approx
+            contours_found = True
             break
 
     #################################################################
@@ -217,11 +219,23 @@ def cv_processing(
     coef_y = orig_image.shape[0] / image.shape[0]
     coef_x = orig_image.shape[1] / image.shape[1]
 
-    try:
-        for contour in doc_cnts:
-            contour[:, 0] = contour[:, 0] * coef_y
-            contour[:, 1] = contour[:, 1] * coef_x
-    except UnboundLocalError:
+    if contours_found:
+        try:
+            for contour in doc_cnts:
+                contour[:, 0] = contour[:, 0] * coef_y
+                contour[:, 1] = contour[:, 1] * coef_x
+        except UnboundLocalError:
+            warning = True
+            print(
+                "[bold red]*******  NOT FOUND contours[/bold red], "
+                "try to change gamma parameter."
+            )
+            if not image_skip_wrong:
+                copy_original(input_file, output_file)
+                return True, True
+            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            return False, warning
+    else:
         warning = True
         print(
             "[bold red]*******  NOT FOUND contours[/bold red], "

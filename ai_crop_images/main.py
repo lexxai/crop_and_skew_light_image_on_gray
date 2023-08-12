@@ -204,8 +204,8 @@ def app_arg():
     )
     ap.add_argument(
         "--gamma",
-        default="7.0",
-        help="Gamma image correction pre-filter, default: '7.0', 1 - Off",
+        default="4.0",
+        help="Gamma image correction pre-filter, default: '4.0', 1 - Off",
     )
     ap.add_argument(
         "--morph",
