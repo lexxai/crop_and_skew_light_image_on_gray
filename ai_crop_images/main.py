@@ -97,6 +97,30 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
     return parameter, id
 
 
+def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bool]:
+    is_done = False
+    iteration = 0
+    success = None
+    warn = None
+    while not is_done:
+        parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
+        if parameters_work is not None:
+            gamma = parameters_work["gamma"]
+            dilate = parameters_work["dilate"]
+            print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
+            success, warn = im_scan(
+                im,
+                path_out,
+                parameters=parameters_work,
+            )
+            if not warn:
+                is_done = True
+        else:
+            print("\n[red] ***** All iterations failed, operation failed[/red]\n")
+            break
+    return success, warn
+
+
 @exception_keyboard
 def scan_file_dir(
     output_dir: str,
@@ -173,30 +197,7 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                is_done = False
-                iteration = 0
-                success = None
-                warn = None
-                while not is_done:
-                    parameters_work, iteration = tune_parameter_gamma(
-                        parameters, iteration
-                    )
-                    if parameters_work is not None:
-                        gamma = parameters_work["gamma"]
-                        print(f"\n[green]# {iteration=}, {gamma=}[/green]")
-                        success, warn = im_scan(
-                            im,
-                            path_out,
-                            parameters=parameters_work,
-                        )
-                        if not warn:
-                            is_done = True
-                    else:
-                        print(
-                            "\n[red] ***** All iterations failed, operation failed[/red]\n"
-                        )
-                        break
-
+                success, warn = iteration_scan(im, parameters, path_out)
                 if not success:
                     skipped.append(im)
                 if warn:
