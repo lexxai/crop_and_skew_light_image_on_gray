@@ -124,24 +124,30 @@ def scan_file_dir(
             filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_in.glob("*.*"))
         )
 
-        output_files = path_in.glob("*.*")
+        # skip search same files on output folder
+        if not parameters.get("all_input", False):
+            output_files = path_in.glob("*.*")
 
-        output_files = list(
-            filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_out.glob("*.*"))
-        )
+            output_files = list(
+                filter(
+                    lambda f: f.suffix.lower() in VALID_FORMATS, path_out.glob("*.*")
+                )
+            )
 
-        im_files_not_pass = []
-        for i in im_files:
-            is_found = False
-            for ind, o in enumerate(output_files):
-                if i.name == o.name:
-                    output_files.pop(ind)
-                    is_found = True
-                    break
-            if not is_found:
-                im_files_not_pass.append(i)
+            im_files_not_pass = []
+            for i in im_files:
+                is_found = False
+                for ind, o in enumerate(output_files):
+                    if i.name == o.name:
+                        output_files.pop(ind)
+                        is_found = True
+                        break
+                if not is_found:
+                    im_files_not_pass.append(i)
 
-        im_files_not_pass = sorted(list(im_files_not_pass))
+            im_files_not_pass = sorted(list(im_files_not_pass))
+        else:
+            im_files_not_pass = im_files
 
         total_files = len(im_files)
         total_files_not_pass = len(im_files_not_pass)
@@ -254,6 +260,12 @@ def app_arg():
         "or result less than 800x1000. Copy original if problem. Default: skipped",
     )
     ap.add_argument(
+        "--all_input",
+        action="store_true",
+        help="Scan all images in the input folder without skipping the search "
+        "for already processed images in the output folder",
+    )
+    ap.add_argument(
         "-V",
         "--version",
         action="store_true",
@@ -279,6 +291,7 @@ def cli():
         "normalize_scale": float(args.normalize),
         "skip_wrong": not args.noskip,
         "detection_height": int(args.detection_height),
+        "all_input": args.all_input,
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
