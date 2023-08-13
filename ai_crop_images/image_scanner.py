@@ -186,14 +186,20 @@ def cv_processing(
     # In the version OpenCV v2.4, v4-beta, and v4-official
     # the function returns a tuple with 2 element
     contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)
+    # contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if debug:
+        for c in contours:
+            # get bounding rect
+            (x, y, w, h) = cv2.boundingRect(c)
+            # draw red rect
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
         # Show the image and all the contours
         cv2.imshow("Image", imutils.resize(image, height=500))
         cv2.drawContours(image, contours, -1, green_color, 3)
         cv2.imshow("All contours", imutils.resize(image, height=500))
-        cv2.waitKey(5000)
+        cv2.waitKey(0)
         cv2.destroyAllWindows()
 
     #################################################################
