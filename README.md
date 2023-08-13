@@ -5,15 +5,15 @@ Using Python and OpenCV to detect the border of a light image on a gray backgrou
 ## help
 
 ```
-ai_crop_images [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--morph MORPH] [--normalize NORMALIZE] [--ratio RATIO]
-                  [--min_height MIN_HEIGHT] [--detection_height DETECTION_HEIGHT] [--debug] [--noskip] [-V]
+ai_crop_images  [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--morph MORPH] [--normalize NORMALIZE] [--ratio RATIO]
+                  [--min_height MIN_HEIGHT] [--detection_height DETECTION_HEIGHT] [--debug] [--noskip] [--all_input] [-V]
 
 options:
   -h, --help            show this help message and exit
   --images IMAGES       Directory of images to be scanned
   --image IMAGE         Path to single image to be scanned
   --output OUTPUT       Directory to output result images, default: 'output'
-  --gamma GAMMA         Gamma image correction pre-filter, default: '7.0', 1 - Off
+  --gamma GAMMA         Gamma image correction pre-filter, default: '4.0', 1 - Off
   --morph MORPH         morph image correction for smooth contours, default: '35'. 0 - Off
   --normalize NORMALIZE
                         normalize_scale image correction pre-filter, default: '1'. 1 - Off, 1.2 - for start
@@ -24,6 +24,7 @@ options:
                         internally downscale the original image to this height in px for the found border, default: '900'
   --debug               debug, CV operation for single image only
   --noskip              no skip wrong images, like output same size, or result less than 800x1000. Copy original if problem. Default: skipped
+  --all_input           Scan all images in the input folder without skipping the search for already processed images in the output folder
   -V, --version         show version
 
 ```
