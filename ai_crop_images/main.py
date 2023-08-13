@@ -5,6 +5,7 @@ from pathlib import Path
 from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
 import sys
+import gc
 
 from rich import print
 
@@ -181,6 +182,8 @@ def scan_file_dir(
                     skipped.append(im)
                 if warn:
                     warning.append(im)
+            # be ready for new loop
+            gc.collect()
 
         if skipped:
             skipped_total = len(skipped)

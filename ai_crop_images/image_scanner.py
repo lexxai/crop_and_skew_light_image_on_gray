@@ -306,6 +306,18 @@ def cv_processing(
         return False, True
 
     result = cv2.imwrite(output_file, warped)
+
+    # delete all unused
+    try:
+        warped = np.empty(warped.shape)
+        orig_image = np.empty(orig_image.shape)
+        blur = np.empty(blur.shape)
+        kernel = np.empty(kernel.shape)
+        image = np.empty(image.shape)
+        contours.clear()
+    except Exception as e:
+        print("Clear memory", e)
+
     return result, warning
 
 
