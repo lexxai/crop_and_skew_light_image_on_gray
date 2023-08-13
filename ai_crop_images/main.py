@@ -245,6 +245,13 @@ def app_arg():
         help="morph image correction for smooth contours, default: '35'. 0 - Off",
     )
     ap.add_argument(
+        "--blur",
+        type=int,
+        choices=(3, 5, 7, 9, 11, 13),
+        default=5,
+        help="image blur kernel size, default: '5'",
+    )
+    ap.add_argument(
         "--normalize",
         default="1",
         help="normalize_scale image correction pre-filter, "
@@ -326,6 +333,7 @@ def cli():
         "detection_height": int(args.detection_height),
         "all_input": args.all_input,
         "no_iteration": args.no_iteration,
+        "blur": args.blur,
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
