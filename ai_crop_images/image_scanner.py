@@ -85,6 +85,19 @@ def cv_normalize_scale(image, beta: float = 1.2):
     return norm_img
 
 
+def cv_scale_contour(cnt, scale):
+    M = cv2.moments(cnt)
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+
+    cnt_norm = cnt - [cx, cy]
+    cnt_scaled = cnt_norm * scale
+    cnt_scaled = cnt_scaled + [cx, cy]
+    cnt_scaled = cnt_scaled.astype(np.int32)
+
+    return cnt_scaled
+
+
 def cv_processing(
     img_file: Path, output: Path, parameters: dict = {}, debug: bool = False
 ) -> tuple[bool, bool]:
@@ -187,14 +200,20 @@ def cv_processing(
     # the function returns a tuple with 2 element
 
     if image_dilate:
+        # it help fill gap on contours, but at result upscale contours
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
         dilated = cv2.dilate(edged, kernel)
         contours, _ = cv2.findContours(
             dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
+        # downscale dilated contours by 1%
+        contours = [cv_scale_contour(c, 0.99) for c in contours]
+        dilated = np.empty(0)
+        kernel = np.empty(0)
     else:
         contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if debug:
         c_len = len(contours)
