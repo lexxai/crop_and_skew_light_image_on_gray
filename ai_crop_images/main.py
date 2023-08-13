@@ -5,6 +5,7 @@ from pathlib import Path
 from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
 import sys
+import gc
 
 from rich import print
 
@@ -49,6 +50,14 @@ def get_version():
 #     sleep(0.1)
 
 
+def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
+    print("[yellow] --- Automatically add 'dilate' option as last way[/yellow]")
+    parameter_copy = parameter.copy()
+    parameter_copy["dilate"] = True
+    # print(parameter_copy)
+    return parameter_copy, id + 1
+
+
 def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
     """_summary_
 
@@ -60,6 +69,7 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
         tuple[dict, float]: copy parameter , id of next steps
     """
     STEPS = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
+    # STEPS = (0,)
 
     gamma_start = parameter["gamma"]
     if id is not None:
@@ -67,7 +77,8 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
             parameter_copy = parameter.copy()
             while True:
                 if id >= len(STEPS):
-                    return None, None
+                    return tune_parameter_dilate(parameter, id)
+                    # return None, None
                 step = STEPS[id]
                 gamma = gamma_start + step
                 print(f"tune_parameter_gamma id={id+1}, {step=}, {gamma=} {gamma>1}")
@@ -78,9 +89,36 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
                     id += 1
 
         else:
-            return None, None
+            if id == len(STEPS):
+                return tune_parameter_dilate(parameter, id)
+            else:
+                return None, None
 
     return parameter, id
+
+
+def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bool]:
+    is_done = False
+    iteration = 0
+    success = None
+    warn = None
+    while not is_done:
+        parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
+        if parameters_work is not None:
+            gamma = parameters_work["gamma"]
+            dilate = parameters_work["dilate"]
+            print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
+            success, warn = im_scan(
+                im,
+                path_out,
+                parameters=parameters_work,
+            )
+            if not warn:
+                is_done = True
+        else:
+            print("\n[red] ***** All iterations failed, operation failed[/red]\n")
+            break
+    return success, warn
 
 
 @exception_keyboard
@@ -123,24 +161,30 @@ def scan_file_dir(
             filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_in.glob("*.*"))
         )
 
-        output_files = path_in.glob("*.*")
+        # skip search same files on output folder
+        if not parameters.get("all_input", False):
+            output_files = path_in.glob("*.*")
 
-        output_files = list(
-            filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_out.glob("*.*"))
-        )
+            output_files = list(
+                filter(
+                    lambda f: f.suffix.lower() in VALID_FORMATS, path_out.glob("*.*")
+                )
+            )
 
-        im_files_not_pass = []
-        for i in im_files:
-            is_found = False
-            for ind, o in enumerate(output_files):
-                if i.name == o.name:
-                    output_files.pop(ind)
-                    is_found = True
-                    break
-            if not is_found:
-                im_files_not_pass.append(i)
+            im_files_not_pass = []
+            for i in im_files:
+                is_found = False
+                for ind, o in enumerate(output_files):
+                    if i.name == o.name:
+                        output_files.pop(ind)
+                        is_found = True
+                        break
+                if not is_found:
+                    im_files_not_pass.append(i)
 
-        im_files_not_pass = sorted(list(im_files_not_pass))
+            im_files_not_pass = sorted(list(im_files_not_pass))
+        else:
+            im_files_not_pass = im_files
 
         total_files = len(im_files)
         total_files_not_pass = len(im_files_not_pass)
@@ -153,34 +197,13 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                is_done = False
-                iteration = 0
-                success = None
-                warn = None
-                while not is_done:
-                    parameters_work, iteration = tune_parameter_gamma(
-                        parameters, iteration
-                    )
-                    if parameters_work is not None:
-                        gamma = parameters_work["gamma"]
-                        print(f"\n[green]# {iteration=}, {gamma=}[/green]")
-                        success, warn = im_scan(
-                            im,
-                            path_out,
-                            parameters=parameters_work,
-                        )
-                        if not warn:
-                            is_done = True
-                    else:
-                        print(
-                            "\n[red] ***** All iterations failed, operation failed[/red]\n"
-                        )
-                        break
-
+                success, warn = iteration_scan(im, parameters, path_out)
                 if not success:
                     skipped.append(im)
                 if warn:
                     warning.append(im)
+            # be ready for new loop
+            gc.collect()
 
         if skipped:
             skipped_total = len(skipped)
@@ -204,11 +227,13 @@ def app_arg():
     )
     ap.add_argument(
         "--gamma",
-        default="7.0",
-        help="Gamma image correction pre-filter, default: '7.0', 1 - Off",
+        type=float,
+        default="4.0",
+        help="Gamma image correction pre-filter, default: '4.0', 1 - Off",
     )
     ap.add_argument(
         "--morph",
+        type=int,
         default="35",
         help="morph image correction for smooth contours, default: '35'. 0 - Off",
     )
@@ -219,19 +244,28 @@ def app_arg():
         "default: '1'. 1 - Off, 1.2 - for start",
     )
     ap.add_argument(
+        "--dilate",
+        action="store_true",
+        help="dilate, CV operation to close open contours with an eclipse. default: 'off'",
+    ),
+    ap.add_argument(
         "--ratio",
+        type=float,
         default="1.294",
         help="desired correction of the image aspect ratio H to W, default: '1.294'",
     )
     ap.add_argument(
         "--min_height",
+        type=int,
         default="1000",
         help="desired minimum height of the output image in px, default: '1000'",
     )
     ap.add_argument(
         "--detection_height",
+        type=int,
         default="900",
-        help="internally downscale the original image to this height in px for the found border, default: '900'",
+        help="internally downscale the original image to this height in px "
+        "for the found border, default: '900'",
     )
     ap.add_argument(
         "--debug",
@@ -243,6 +277,12 @@ def app_arg():
         action="store_true",
         help="no skip wrong images, like output same size, "
         "or result less than 800x1000. Copy original if problem. Default: skipped",
+    )
+    ap.add_argument(
+        "--all_input",
+        action="store_true",
+        help="Scan all images in the input folder without skipping the search "
+        "for already processed images in the output folder",
     )
     ap.add_argument(
         "-V",
@@ -267,9 +307,11 @@ def cli():
         "min_height ": int(args.min_height),
         "ratio": float(args.ratio),
         "morph": int(args.morph),
+        "dilate": args.dilate,
         "normalize_scale": float(args.normalize),
         "skip_wrong": not args.noskip,
         "detection_height": int(args.detection_height),
+        "all_input": args.all_input,
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug

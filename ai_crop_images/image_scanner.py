@@ -58,7 +58,7 @@ def copy_original(input_file: str, output_file: str) -> bool:
 
 
 # GAMMA CODE : https://stackoverflow.com/questions/26912869/color-levels-in-opencv
-def cv_gamma(image, gamma: float = 7.0):
+def cv_gamma(image, gamma: float = 4.0):
     inBlack = np.array([0, 0, 0], dtype=np.float32)
     inWhite = np.array([255, 255, 255], dtype=np.float32)
     inGamma = np.array([1.0, 1.0, 1.0], dtype=np.float32)
@@ -108,12 +108,12 @@ def cv_processing(
     green_color = (0, 255, 0)
 
     image_ratio: float = float(parameters.get("ratio", 1.294))
-    image_gamma: float = float(parameters.get("gamma", 7.0))
+    image_gamma: float = float(parameters.get("gamma", 4.0))
     image_morph: int = int(parameters.get("morph", 35))
     image_normalize_scale: float = float(parameters.get("normalize_scale", 1.0))
     image_skip_wrong = parameters.get("skip_wrong", False)
     image_height_for_detection = int(parameters.get("detection_height", 900))
-
+    image_dilate = parameters.get("dilate", False)
     image_geometry_ratio = image_ratio
 
     MIN_HEIGHT: int = int(parameters.get("min_height", 1000))
@@ -185,22 +185,46 @@ def cv_processing(
     # where the `contours` is the second one
     # In the version OpenCV v2.4, v4-beta, and v4-official
     # the function returns a tuple with 2 element
-    contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+    if image_dilate:
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
+        dilated = cv2.dilate(edged, kernel)
+        contours, _ = cv2.findContours(
+            dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+    else:
+        contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if debug:
+        c_len = len(contours)
+        c_step = round(255 / c_len - 1)
+        image_bound = image.copy()
+        for i, c in enumerate(contours):
+            color = 255 - (i * c_step)
+            # print(color)
+            # get bounding rect
+            (x, y, w, h) = cv2.boundingRect(c)
+            # draw red rect
+            cv2.rectangle(
+                image_bound, (x, y), (x + w, y + h), (255 - color, 0, color), 4
+            )
+
         # Show the image and all the contours
         cv2.imshow("Image", imutils.resize(image, height=500))
         cv2.drawContours(image, contours, -1, green_color, 3)
+        cv2.imshow("Image boundingRect", imutils.resize(image_bound, height=500))
         cv2.imshow("All contours", imutils.resize(image, height=500))
         cv2.waitKey(5000)
         cv2.destroyAllWindows()
+        image_bound = np.empty(0)
 
     #################################################################
     # Select Only the Edges of the Document
     #################################################################
 
     # go through each contour
+    contours_found = False
     for contour in contours:
         # we approximate the contour
         peri = cv2.arcLength(contour, True)
@@ -209,6 +233,7 @@ def cv_processing(
         # (we can assume that we have found our document)
         if len(approx) == 4:
             doc_cnts = approx
+            contours_found = True
             break
 
     #################################################################
@@ -217,11 +242,23 @@ def cv_processing(
     coef_y = orig_image.shape[0] / image.shape[0]
     coef_x = orig_image.shape[1] / image.shape[1]
 
-    try:
-        for contour in doc_cnts:
-            contour[:, 0] = contour[:, 0] * coef_y
-            contour[:, 1] = contour[:, 1] * coef_x
-    except UnboundLocalError:
+    if contours_found:
+        try:
+            for contour in doc_cnts:
+                contour[:, 0] = contour[:, 0] * coef_y
+                contour[:, 1] = contour[:, 1] * coef_x
+        except UnboundLocalError:
+            warning = True
+            print(
+                "[bold red]** UnboundLocalError NOT FOUND contours[/bold red], "
+                "try to change gamma parameter."
+            )
+            if not image_skip_wrong:
+                copy_original(input_file, output_file)
+                return True, True
+            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            return False, warning
+    else:
         warning = True
         print(
             "[bold red]*******  NOT FOUND contours[/bold red], "
@@ -292,6 +329,19 @@ def cv_processing(
         return False, True
 
     result = cv2.imwrite(output_file, warped)
+
+    # delete all unused
+    try:
+        warped = np.empty(0)
+        orig_image = np.empty(0)
+        blur = np.empty(0)
+        kernel = np.empty(0)
+        image = np.empty(0)
+        for contour in contours:
+            contour = np.empty(0)
+    except Exception as e:
+        print("Clear memory", e)
+
     return result, warning
 
 
