@@ -98,26 +98,33 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
 
 
 def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bool]:
-    is_done = False
-    iteration = 0
     success = None
     warn = None
-    while not is_done:
-        parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
-        if parameters_work is not None:
-            gamma = parameters_work["gamma"]
-            dilate = parameters_work["dilate"]
-            print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
-            success, warn = im_scan(
-                im,
-                path_out,
-                parameters=parameters_work,
-            )
-            if not warn:
-                is_done = True
-        else:
-            print("\n[red] ***** All iterations failed, operation failed[/red]\n")
-            break
+    if parameters.get("no_iteration", False):
+        success, warn = im_scan(
+            im,
+            path_out,
+            parameters=parameters,
+        )
+    else:
+        is_done = False
+        iteration = 0
+        while not is_done:
+            parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
+            if parameters_work is not None:
+                gamma = parameters_work["gamma"]
+                dilate = parameters_work["dilate"]
+                print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
+                success, warn = im_scan(
+                    im,
+                    path_out,
+                    parameters=parameters_work,
+                )
+                if not warn:
+                    is_done = True
+            else:
+                print("\n[red] ***** All iterations failed, operation failed[/red]\n")
+                break
     return success, warn
 
 
@@ -238,6 +245,13 @@ def app_arg():
         help="morph image correction for smooth contours, default: '35'. 0 - Off",
     )
     ap.add_argument(
+        "--blur",
+        type=int,
+        choices=(3, 5, 7, 9, 11, 13),
+        default=5,
+        help="image blur kernel size, default: '5'",
+    )
+    ap.add_argument(
         "--normalize",
         default="1",
         help="normalize_scale image correction pre-filter, "
@@ -266,6 +280,12 @@ def app_arg():
         default="900",
         help="internally downscale the original image to this height in px "
         "for the found border, default: '900'",
+    )
+    ap.add_argument(
+        "--no_iteration",
+        action="store_true",
+        help="disable the iteration process to automatically adjust the gamma and dilate"
+        " values in case of an unsuccessful result, default: iteration is enabled.",
     )
     ap.add_argument(
         "--debug",
@@ -312,6 +332,8 @@ def cli():
         "skip_wrong": not args.noskip,
         "detection_height": int(args.detection_height),
         "all_input": args.all_input,
+        "no_iteration": args.no_iteration,
+        "blur": args.blur,
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug

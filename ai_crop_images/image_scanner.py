@@ -85,6 +85,19 @@ def cv_normalize_scale(image, beta: float = 1.2):
     return norm_img
 
 
+def cv_scale_contour(cnt, scale):
+    M = cv2.moments(cnt)
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+
+    cnt_norm = cnt - [cx, cy]
+    cnt_scaled = cnt_norm * scale
+    cnt_scaled = cnt_scaled + [cx, cy]
+    cnt_scaled = cnt_scaled.astype(np.int32)
+
+    return cnt_scaled
+
+
 def cv_processing(
     img_file: Path, output: Path, parameters: dict = {}, debug: bool = False
 ) -> tuple[bool, bool]:
@@ -115,6 +128,7 @@ def cv_processing(
     image_height_for_detection = int(parameters.get("detection_height", 900))
     image_dilate = parameters.get("dilate", False)
     image_geometry_ratio = image_ratio
+    image_blur = int(parameters.get("blur", 5))
 
     MIN_HEIGHT: int = int(parameters.get("min_height", 1000))
     MIN_WIDTH: int = round(MIN_HEIGHT / image_ratio)
@@ -156,7 +170,7 @@ def cv_processing(
     #################################################################
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # convert the image to gray scale
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)  # Add Gaussian blur
+    blur = cv2.GaussianBlur(gray, (image_blur, image_blur), 0)  # Add Gaussian blur
 
     MORPH = image_morph
 
@@ -187,33 +201,40 @@ def cv_processing(
     # the function returns a tuple with 2 element
 
     if image_dilate:
+        # it help fill gap on contours, but at result upscale contours
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
         dilated = cv2.dilate(edged, kernel)
         contours, _ = cv2.findContours(
             dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
+        # downscale dilated contours by 1%
+        contours = [cv_scale_contour(c, 0.99) for c in contours]
+        dilated = np.empty(0)
+        kernel = np.empty(0)
     else:
         contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if debug:
-        c_len = len(contours)
-        c_step = round(255 / c_len - 1)
-        image_bound = image.copy()
-        for i, c in enumerate(contours):
-            color = 255 - (i * c_step)
-            # print(color)
-            # get bounding rect
-            (x, y, w, h) = cv2.boundingRect(c)
-            # draw red rect
-            cv2.rectangle(
-                image_bound, (x, y), (x + w, y + h), (255 - color, 0, color), 4
-            )
+        if contours:
+            c_len = len(contours)
+            c_step = round(255 / c_len - 1)
+            image_bound = image.copy()
+            for i, c in enumerate(contours):
+                color = 255 - (i * c_step)
+                # print(color)
+                # get bounding rect
+                (x, y, w, h) = cv2.boundingRect(c)
+                # draw red rect
+                cv2.rectangle(
+                    image_bound, (x, y), (x + w, y + h), (255 - color, 0, color), 4
+                )
+            cv2.imshow("Image boundingRect", imutils.resize(image_bound, height=500))
 
         # Show the image and all the contours
         cv2.imshow("Image", imutils.resize(image, height=500))
         cv2.drawContours(image, contours, -1, green_color, 3)
-        cv2.imshow("Image boundingRect", imutils.resize(image_bound, height=500))
         cv2.imshow("All contours", imutils.resize(image, height=500))
         cv2.waitKey(5000)
         cv2.destroyAllWindows()
