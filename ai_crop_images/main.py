@@ -98,26 +98,33 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
 
 
 def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bool]:
-    is_done = False
-    iteration = 0
     success = None
     warn = None
-    while not is_done:
-        parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
-        if parameters_work is not None:
-            gamma = parameters_work["gamma"]
-            dilate = parameters_work["dilate"]
-            print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
-            success, warn = im_scan(
-                im,
-                path_out,
-                parameters=parameters_work,
-            )
-            if not warn:
-                is_done = True
-        else:
-            print("\n[red] ***** All iterations failed, operation failed[/red]\n")
-            break
+    if parameters.get("no_iteration", False):
+        success, warn = im_scan(
+            im,
+            path_out,
+            parameters=parameters,
+        )
+    else:
+        is_done = False
+        iteration = 0
+        while not is_done:
+            parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
+            if parameters_work is not None:
+                gamma = parameters_work["gamma"]
+                dilate = parameters_work["dilate"]
+                print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
+                success, warn = im_scan(
+                    im,
+                    path_out,
+                    parameters=parameters_work,
+                )
+                if not warn:
+                    is_done = True
+            else:
+                print("\n[red] ***** All iterations failed, operation failed[/red]\n")
+                break
     return success, warn
 
 
@@ -268,6 +275,12 @@ def app_arg():
         "for the found border, default: '900'",
     )
     ap.add_argument(
+        "--no_iteration",
+        action="store_true",
+        help="disable the iteration process to automatically adjust the gamma and dilate"
+        " values in case of an unsuccessful result, default: iteration is enabled.",
+    )
+    ap.add_argument(
         "--debug",
         action="store_true",
         help="debug, CV operation for single image only",
@@ -312,6 +325,7 @@ def cli():
         "skip_wrong": not args.noskip,
         "detection_height": int(args.detection_height),
         "all_input": args.all_input,
+        "no_iteration": args.no_iteration,
     }
     scan_file_dir(
         args.output, args.image, args.images, parameters=parameters, debug=args.debug
