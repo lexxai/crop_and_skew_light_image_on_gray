@@ -232,7 +232,7 @@ def app_arg():
     ap.add_argument(
         "--dilate",
         action="store_true",
-        help="dilate, CV operation to close open contours with an eclipse",
+        help="dilate, CV operation to close open contours with an eclipse. default: 'off'",
     ),
     ap.add_argument(
         "--ratio",
