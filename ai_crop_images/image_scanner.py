@@ -227,7 +227,7 @@ def cv_processing(
         except UnboundLocalError:
             warning = True
             print(
-                "[bold red]*******  NOT FOUND contours[/bold red], "
+                "[bold red]** UnboundLocalError NOT FOUND contours[/bold red], "
                 "try to change gamma parameter."
             )
             if not image_skip_wrong:
