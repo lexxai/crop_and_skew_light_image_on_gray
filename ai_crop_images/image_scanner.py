@@ -187,7 +187,7 @@ def cv_processing(
     # the function returns a tuple with 2 element
 
     if image_dilate:
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 13))
         dilated = cv2.dilate(edged, kernel)
         contours, _ = cv2.findContours(
             dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
