@@ -314,7 +314,8 @@ def cv_processing(
         blur = np.empty(0)
         kernel = np.empty(0)
         image = np.empty(0)
-        contours.clear()
+        for contour in contours:
+            contour = np.empty(0)
     except Exception as e:
         print("Clear memory", e)
 
