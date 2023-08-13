@@ -50,6 +50,14 @@ def get_version():
 #     sleep(0.1)
 
 
+def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
+    print("[yellow] --- Automatically add 'dilate' option as last way[/yellow]")
+    parameter_copy = parameter.copy()
+    parameter_copy["dilate"] = True
+    # print(parameter_copy)
+    return parameter_copy, id + 1
+
+
 def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
     """_summary_
 
@@ -61,6 +69,7 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
         tuple[dict, float]: copy parameter , id of next steps
     """
     STEPS = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
+    # STEPS = (0,)
 
     gamma_start = parameter["gamma"]
     if id is not None:
@@ -68,7 +77,8 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
             parameter_copy = parameter.copy()
             while True:
                 if id >= len(STEPS):
-                    return None, None
+                    return tune_parameter_dilate(parameter, id)
+                    # return None, None
                 step = STEPS[id]
                 gamma = gamma_start + step
                 print(f"tune_parameter_gamma id={id+1}, {step=}, {gamma=} {gamma>1}")
@@ -79,7 +89,10 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
                     id += 1
 
         else:
-            return None, None
+            if id == len(STEPS):
+                return tune_parameter_dilate(parameter, id)
+            else:
+                return None, None
 
     return parameter, id
 
