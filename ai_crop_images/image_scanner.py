@@ -309,11 +309,11 @@ def cv_processing(
 
     # delete all unused
     try:
-        warped = np.empty(warped.shape)
-        orig_image = np.empty(orig_image.shape)
-        blur = np.empty(blur.shape)
-        kernel = np.empty(kernel.shape)
-        image = np.empty(image.shape)
+        warped = np.empty(0)
+        orig_image = np.empty(0)
+        blur = np.empty(0)
+        kernel = np.empty(0)
+        image = np.empty(0)
         contours.clear()
     except Exception as e:
         print("Clear memory", e)
