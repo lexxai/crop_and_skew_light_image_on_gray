@@ -113,7 +113,7 @@ def cv_processing(
     image_normalize_scale: float = float(parameters.get("normalize_scale", 1.0))
     image_skip_wrong = parameters.get("skip_wrong", False)
     image_height_for_detection = int(parameters.get("detection_height", 900))
-
+    image_dilate = parameters.get("dilate", False)
     image_geometry_ratio = image_ratio
 
     MIN_HEIGHT: int = int(parameters.get("min_height", 1000))
@@ -185,22 +185,39 @@ def cv_processing(
     # where the `contours` is the second one
     # In the version OpenCV v2.4, v4-beta, and v4-official
     # the function returns a tuple with 2 element
-    contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    # contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+    if image_dilate:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
+        dilated = cv2.dilate(edged, kernel)
+        contours, _ = cv2.findContours(
+            dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+    else:
+        contours, _ = cv2.findContours(edged, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if debug:
-        for c in contours:
+        c_len = len(contours)
+        c_step = round(255 / c_len - 1)
+        image_bound = image.copy()
+        for i, c in enumerate(contours):
+            color = 255 - (i * c_step)
+            # print(color)
             # get bounding rect
             (x, y, w, h) = cv2.boundingRect(c)
             # draw red rect
-            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            cv2.rectangle(
+                image_bound, (x, y), (x + w, y + h), (255 - color, 0, color), 4
+            )
 
         # Show the image and all the contours
         cv2.imshow("Image", imutils.resize(image, height=500))
         cv2.drawContours(image, contours, -1, green_color, 3)
+        cv2.imshow("Image boundingRect", imutils.resize(image_bound, height=500))
         cv2.imshow("All contours", imutils.resize(image, height=500))
-        cv2.waitKey(0)
+        cv2.waitKey(5000)
         cv2.destroyAllWindows()
+        image_bound = np.empty(0)
 
     #################################################################
     # Select Only the Edges of the Document

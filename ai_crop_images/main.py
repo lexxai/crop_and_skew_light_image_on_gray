@@ -230,6 +230,11 @@ def app_arg():
         "default: '1'. 1 - Off, 1.2 - for start",
     )
     ap.add_argument(
+        "--dilate",
+        action="store_true",
+        help="dilate, CV operation fro close opened contours by eclipse",
+    ),
+    ap.add_argument(
         "--ratio",
         type=float,
         default="1.294",
@@ -288,6 +293,7 @@ def cli():
         "min_height ": int(args.min_height),
         "ratio": float(args.ratio),
         "morph": int(args.morph),
+        "dilate": args.dilate,
         "normalize_scale": float(args.normalize),
         "skip_wrong": not args.noskip,
         "detection_height": int(args.detection_height),
