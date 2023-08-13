@@ -207,11 +207,13 @@ def app_arg():
     )
     ap.add_argument(
         "--gamma",
+        type=float,
         default="4.0",
         help="Gamma image correction pre-filter, default: '4.0', 1 - Off",
     )
     ap.add_argument(
         "--morph",
+        type=int,
         default="35",
         help="morph image correction for smooth contours, default: '35'. 0 - Off",
     )
@@ -223,18 +225,22 @@ def app_arg():
     )
     ap.add_argument(
         "--ratio",
+        type=float,
         default="1.294",
         help="desired correction of the image aspect ratio H to W, default: '1.294'",
     )
     ap.add_argument(
         "--min_height",
+        type=int,
         default="1000",
         help="desired minimum height of the output image in px, default: '1000'",
     )
     ap.add_argument(
         "--detection_height",
+        type=int,
         default="900",
-        help="internally downscale the original image to this height in px for the found border, default: '900'",
+        help="internally downscale the original image to this height in px "
+        "for the found border, default: '900'",
     )
     ap.add_argument(
         "--debug",
