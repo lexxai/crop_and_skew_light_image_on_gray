@@ -5,6 +5,8 @@ from pathlib import Path
 from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
 import sys
+import os
+from pefile import PE
 import gc
 
 from rich import print
@@ -37,17 +39,38 @@ def print_datetime(func):
     return wrapper
 
 
+def get_version_PE():
+    if getattr(sys, "frozen", False):
+        pe = PE(sys.executable)
+        if not "VS_FIXEDFILEINFO" in pe.__dict__:
+            print("ERROR: Oops, {} has no version info. Can't continue.").format(pename)
+            return None
+        if not pe.VS_FIXEDFILEINFO:
+            print(
+                "ERROR: VS_FIXEDFILEINFO field not set for {}. Can't continue."
+            ).format(pename)
+            return None
+        verinfo = pe.VS_FIXEDFILEINFO[0]
+        # print(verinfo)
+        filever = (
+            verinfo.FileVersionMS >> 16,
+            verinfo.FileVersionMS & 0xFFFF,
+            verinfo.FileVersionLS >> 16,
+            # verinfo.FileVersionLS & 0xFFFF,
+        )
+        return "{}.{}.{}".format(*filever)
+
+
 def get_version():
     try:
         version_str = version(__package__)
     except Exception:
-        version_str = "undefined"
-    return f"Version: '{ version_str }', package: {__package__}"
+        version_str = get_version_PE()
+        if version_str is None:
+            version_str = "undefined"
+    pack = __package__ if __package__ else Path(sys.executable).name
 
-
-# for i in progressbar(range(100), redirect_stdout=True):
-#     print("Some text", i)
-#     sleep(0.1)
+    return f"Version: '{ version_str }', package: {pack}"
 
 
 def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
@@ -224,6 +247,13 @@ def scan_file_dir(
 
 def app_arg():
     ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=get_version(),
+        help="show version of app",
+    )
     group = ap.add_mutually_exclusive_group(required=True)
     group.add_argument("--images", help="Directory of images to be scanned")
     group.add_argument("--image", help="Path to single image to be scanned")
@@ -304,12 +334,7 @@ def app_arg():
         help="Scan all images in the input folder without skipping the search "
         "for already processed images in the output folder",
     )
-    ap.add_argument(
-        "-V",
-        "--version",
-        action="store_true",
-        help="show version",
-    )
+
     args = ap.parse_args()
 
     # print(args)
@@ -318,6 +343,7 @@ def app_arg():
 
 def cli():
     args = app_arg()
+
     if args.version:
         print(get_version())
         return
