@@ -151,6 +151,13 @@ def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bo
     return success, warn
 
 
+def save_log_file(log_file: Path, data: list[str]) -> None:
+    if data:
+        with open(str(log_file), "w") as f:
+            for d in data:
+                f.write(f"{d}\n")
+
+
 @exception_keyboard
 def scan_file_dir(
     output_dir: str,
@@ -158,12 +165,17 @@ def scan_file_dir(
     im_dir: str = None,
     parameters: dict = {},
     debug: bool = False,
+    log: bool = False,
+    repair: str = None,
 ):
     VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
+    LOG_FILES = {"warning": Path("warning.log"), "skipped": Path("skipped.log")}
 
     path_out = Path(output_dir)
     if not path_out.exists():
         path_out.mkdir()
+
+    repair_out = Path(repair)
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
@@ -218,6 +230,12 @@ def scan_file_dir(
 
         total_files = len(im_files)
         total_files_not_pass = len(im_files_not_pass)
+
+        if total_files != total_files_not_pass:
+            if not repair_out.is_dir():
+                repair_out.mkdir()
+            path_out = repair_out
+
         print(
             f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
         )
@@ -243,6 +261,9 @@ def scan_file_dir(
             warning_total = len(warning)
             print(f"[yellow]Total WARNING files: {warning_total}[/yellow]")
             print("\n".join([f.name for f in warning]))
+        if log:
+            save_log_file(LOG_FILES["skipped"], skipped)
+            save_log_file(LOG_FILES["warning"], warning)
 
 
 def app_arg():
@@ -261,6 +282,11 @@ def app_arg():
         "--output",
         default="output",
         help="Directory to output result images, default: 'output'",
+    )
+    ap.add_argument(
+        "--repair",
+        default=None,
+        help="If the output folder is not empty, then save to the recovery folder, by default: None",
     )
     ap.add_argument(
         "--gamma",
@@ -323,6 +349,11 @@ def app_arg():
         help="debug, CV operation for single image only",
     )
     ap.add_argument(
+        "--log",
+        action="store_true",
+        help="store a list of skipped images and images with comments in log files",
+    )
+    ap.add_argument(
         "--noskip",
         action="store_true",
         help="no skip wrong images, like output same size, "
@@ -344,10 +375,6 @@ def app_arg():
 def cli():
     args = app_arg()
 
-    if args.version:
-        print(get_version())
-        return
-
     parameters = {
         "gamma": float(args.gamma),
         "min_height ": int(args.min_height),
@@ -362,7 +389,13 @@ def cli():
         "blur": args.blur,
     }
     scan_file_dir(
-        args.output, args.image, args.images, parameters=parameters, debug=args.debug
+        args.output,
+        args.image,
+        args.images,
+        parameters=parameters,
+        debug=args.debug,
+        log=args.log,
+        repair=args.repair,
     )
     d = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     print(f"\nEND: {d}")

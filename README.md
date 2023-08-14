@@ -5,15 +5,17 @@ Using Python and OpenCV to detect the border of a light image on a gray backgrou
 ## help
 
 ```
-ai_crop_images  [-h] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--gamma GAMMA] [--morph MORPH] [--blur {3,5,7,9,11,13}] [--normalize NORMALIZE]
-                  [--dilate] [--ratio RATIO] [--min_height MIN_HEIGHT] [--detection_height DETECTION_HEIGHT] [--no_iteration] [--debug] [--noskip]
-                  [--all_input] [-V]
+ai_crop_images   [-h] [-V] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--repair REPAIR] [--gamma GAMMA] [--morph MORPH] [--blur {3,5,7,9,11,13}]
+                  [--normalize NORMALIZE] [--dilate] [--ratio RATIO] [--min_height MIN_HEIGHT] [--detection_height DETECTION_HEIGHT] [--no_iteration]
+                  [--debug] [--log] [--noskip] [--all_input]
 
 options:
   -h, --help            show this help message and exit
+  -V, --version         show version of app
   --images IMAGES       Directory of images to be scanned
   --image IMAGE         Path to single image to be scanned
   --output OUTPUT       Directory to output result images, default: 'output'
+  --repair REPAIR       If the output folder is not empty, then save to the recovery folder, by default: None
   --gamma GAMMA         Gamma image correction pre-filter, default: '4.0', 1 - Off
   --morph MORPH         morph image correction for smooth contours, default: '35'. 0 - Off
   --blur {3,5,7,9,11,13}
@@ -29,9 +31,9 @@ options:
   --no_iteration        disable the iteration process to automatically adjust the gamma and dilate values in case of an unsuccessful result, default:
                         iteration is enabled.
   --debug               debug, CV operation for single image only
+  --log                 store a list of skipped images and images with comments in log files
   --noskip              no skip wrong images, like output same size, or result less than 800x1000. Copy original if problem. Default: skipped
   --all_input           Scan all images in the input folder without skipping the search for already processed images in the output folder
-  -V, --version         show version
 
 ```
 
