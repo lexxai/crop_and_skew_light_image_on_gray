@@ -128,6 +128,7 @@ def cv_processing(
     image_height_for_detection = int(parameters.get("detection_height", 900))
     image_dilate = parameters.get("dilate", False)
     image_geometry_ratio = image_ratio
+    image_blur = int(parameters.get("blur", 5))
 
     MIN_HEIGHT: int = int(parameters.get("min_height", 1000))
     MIN_WIDTH: int = round(MIN_HEIGHT / image_ratio)
@@ -169,7 +170,7 @@ def cv_processing(
     #################################################################
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # convert the image to gray scale
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)  # Add Gaussian blur
+    blur = cv2.GaussianBlur(gray, (image_blur, image_blur), 0)  # Add Gaussian blur
 
     MORPH = image_morph
 
@@ -216,23 +217,24 @@ def cv_processing(
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     if debug:
-        c_len = len(contours)
-        c_step = round(255 / c_len - 1)
-        image_bound = image.copy()
-        for i, c in enumerate(contours):
-            color = 255 - (i * c_step)
-            # print(color)
-            # get bounding rect
-            (x, y, w, h) = cv2.boundingRect(c)
-            # draw red rect
-            cv2.rectangle(
-                image_bound, (x, y), (x + w, y + h), (255 - color, 0, color), 4
-            )
+        if contours:
+            c_len = len(contours)
+            c_step = round(255 / c_len - 1)
+            image_bound = image.copy()
+            for i, c in enumerate(contours):
+                color = 255 - (i * c_step)
+                # print(color)
+                # get bounding rect
+                (x, y, w, h) = cv2.boundingRect(c)
+                # draw red rect
+                cv2.rectangle(
+                    image_bound, (x, y), (x + w, y + h), (255 - color, 0, color), 4
+                )
+            cv2.imshow("Image boundingRect", imutils.resize(image_bound, height=500))
 
         # Show the image and all the contours
         cv2.imshow("Image", imutils.resize(image, height=500))
         cv2.drawContours(image, contours, -1, green_color, 3)
-        cv2.imshow("Image boundingRect", imutils.resize(image_bound, height=500))
         cv2.imshow("All contours", imutils.resize(image, height=500))
         cv2.waitKey(5000)
         cv2.destroyAllWindows()

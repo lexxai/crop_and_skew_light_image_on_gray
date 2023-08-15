@@ -1,18 +1,13 @@
-# from time import sleep
-import datetime
-import argparse
+from datetime import datetime
 from pathlib import Path
 from progressbar import progressbar
 from ai_crop_images.image_scanner import im_scan
+from ai_crop_images.parse_args import app_arg
+
 import sys
 import gc
 
 from rich import print
-
-if sys.version_info >= (3, 8):
-    from importlib.metadata import version
-else:
-    from importlib_metadata import version
 
 
 def exception_keyboard(func):
@@ -30,24 +25,11 @@ def exception_keyboard(func):
 
 def print_datetime(func):
     def wrapper(*args, **kwargs):
-        d = datetime.datetime.now()
+        d = datetime.now()
         print(d)
         func(*args, **kwargs)
 
     return wrapper
-
-
-def get_version():
-    try:
-        version_str = version(__package__)
-    except Exception:
-        version_str = "undefined"
-    return f"Version: '{ version_str }', package: {__package__}"
-
-
-# for i in progressbar(range(100), redirect_stdout=True):
-#     print("Some text", i)
-#     sleep(0.1)
 
 
 def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
@@ -128,6 +110,16 @@ def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bo
     return success, warn
 
 
+def save_log_file(log_file: Path, data: list[str]) -> None:
+    if data:
+        with open(str(log_file), "w") as f:
+            f.write(
+                "# Datetime: {}\n".format(datetime.now().strftime("%Y-%m-%d %H:%M"))
+            )
+            f.write("# App args: {}\n".format(" ".join(sys.argv[1:])))
+            f.writelines([f"{d}\n" for d in data])
+
+
 @exception_keyboard
 def scan_file_dir(
     output_dir: str,
@@ -135,12 +127,17 @@ def scan_file_dir(
     im_dir: str = None,
     parameters: dict = {},
     debug: bool = False,
+    log: bool = False,
+    repair: str = None,
 ):
     VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
+    LOG_FILES = {"warning": Path("warning.log"), "skipped": Path("skipped.log")}
 
     path_out = Path(output_dir)
     if not path_out.exists():
         path_out.mkdir()
+
+    repair_out = Path(repair)
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
@@ -195,6 +192,12 @@ def scan_file_dir(
 
         total_files = len(im_files)
         total_files_not_pass = len(im_files_not_pass)
+
+        if total_files != total_files_not_pass:
+            if not repair_out.is_dir():
+                repair_out.mkdir()
+            path_out = repair_out
+
         print(
             f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
         )
@@ -220,100 +223,13 @@ def scan_file_dir(
             warning_total = len(warning)
             print(f"[yellow]Total WARNING files: {warning_total}[/yellow]")
             print("\n".join([f.name for f in warning]))
-
-
-def app_arg():
-    ap = argparse.ArgumentParser()
-    group = ap.add_mutually_exclusive_group(required=True)
-    group.add_argument("--images", help="Directory of images to be scanned")
-    group.add_argument("--image", help="Path to single image to be scanned")
-    ap.add_argument(
-        "--output",
-        default="output",
-        help="Directory to output result images, default: 'output'",
-    )
-    ap.add_argument(
-        "--gamma",
-        type=float,
-        default="4.0",
-        help="Gamma image correction pre-filter, default: '4.0', 1 - Off",
-    )
-    ap.add_argument(
-        "--morph",
-        type=int,
-        default="35",
-        help="morph image correction for smooth contours, default: '35'. 0 - Off",
-    )
-    ap.add_argument(
-        "--normalize",
-        default="1",
-        help="normalize_scale image correction pre-filter, "
-        "default: '1'. 1 - Off, 1.2 - for start",
-    )
-    ap.add_argument(
-        "--dilate",
-        action="store_true",
-        help="dilate, CV operation to close open contours with an eclipse. default: 'off'",
-    ),
-    ap.add_argument(
-        "--ratio",
-        type=float,
-        default="1.294",
-        help="desired correction of the image aspect ratio H to W, default: '1.294'",
-    )
-    ap.add_argument(
-        "--min_height",
-        type=int,
-        default="1000",
-        help="desired minimum height of the output image in px, default: '1000'",
-    )
-    ap.add_argument(
-        "--detection_height",
-        type=int,
-        default="900",
-        help="internally downscale the original image to this height in px "
-        "for the found border, default: '900'",
-    )
-    ap.add_argument(
-        "--no_iteration",
-        action="store_true",
-        help="disable the iteration process to automatically adjust the gamma and dilate"
-        " values in case of an unsuccessful result, default: iteration is enabled.",
-    )
-    ap.add_argument(
-        "--debug",
-        action="store_true",
-        help="debug, CV operation for single image only",
-    )
-    ap.add_argument(
-        "--noskip",
-        action="store_true",
-        help="no skip wrong images, like output same size, "
-        "or result less than 800x1000. Copy original if problem. Default: skipped",
-    )
-    ap.add_argument(
-        "--all_input",
-        action="store_true",
-        help="Scan all images in the input folder without skipping the search "
-        "for already processed images in the output folder",
-    )
-    ap.add_argument(
-        "-V",
-        "--version",
-        action="store_true",
-        help="show version",
-    )
-    args = ap.parse_args()
-
-    # print(args)
-    return args
+        if log:
+            save_log_file(LOG_FILES["skipped"], skipped)
+            save_log_file(LOG_FILES["warning"], warning)
 
 
 def cli():
     args = app_arg()
-    if args.version:
-        print(get_version())
-        return
 
     parameters = {
         "gamma": float(args.gamma),
@@ -326,11 +242,18 @@ def cli():
         "detection_height": int(args.detection_height),
         "all_input": args.all_input,
         "no_iteration": args.no_iteration,
+        "blur": args.blur,
     }
     scan_file_dir(
-        args.output, args.image, args.images, parameters=parameters, debug=args.debug
+        args.output,
+        args.image,
+        args.images,
+        parameters=parameters,
+        debug=args.debug,
+        log=args.log,
+        repair=args.repair,
     )
-    d = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    d = datetime.now().strftime("%Y-%m-%d %H:%M")
     print(f"\nEND: {d}")
 
 
