@@ -1,5 +1,5 @@
 from datetime import datetime
-from pathlib import Path
+# from pathlib import Path
 from rich import print
 
 # from random import randrange
@@ -50,24 +50,24 @@ def dur_datetime(func):
     return wrapper
 
 
-def copy_original(input_file: str, output_file: str) -> bool:
+def copy_original(input_file: str, output_file: str) -> str:
     print(
-        f"[red] Problem read file '{input_file}', then just copy original to destianton [/red]"
+        f"[red] Problem read file '{input_file}', then just copy original to destination [/red]"
     )
     return shutil.copyfile(input_file, output_file)
 
 
 # GAMMA CODE : https://stackoverflow.com/questions/26912869/color-levels-in-opencv
 def cv_gamma(image, gamma: float = 4.0):
-    inBlack = np.array([0, 0, 0], dtype=np.float32)
-    inWhite = np.array([255, 255, 255], dtype=np.float32)
-    inGamma = np.array([1.0, 1.0, 1.0], dtype=np.float32)
-    outBlack = np.array([0, 0, 0], dtype=np.float32)
-    outWhite = np.array([255, 255, 255], dtype=np.float32)
-    inGamma = inGamma / gamma
+    in_black = np.array([0, 0, 0], dtype=np.float32)
+    in_white = np.array([255, 255, 255], dtype=np.float32)
+    in_gamma = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+    out_black = np.array([0, 0, 0], dtype=np.float32)
+    out_white = np.array([255, 255, 255], dtype=np.float32)
+    in_gamma = in_gamma / gamma
     img_g = image.copy()
-    img_g = np.clip((img_g - inBlack) / (inWhite - inBlack), 0, 255)
-    img_g = (img_g ** (1 / inGamma)) * (outWhite - outBlack) + outBlack
+    img_g = np.clip((img_g - in_black) / (in_white - in_black), 0, 255)
+    img_g = (img_g ** (1 / in_gamma)) * (out_white - out_black) + out_black
     image = np.clip(img_g, 0, 255).astype(np.uint8)
     return image
 
@@ -86,9 +86,9 @@ def cv_normalize_scale(image, beta: float = 1.2):
 
 
 def cv_scale_contour(cnt, scale):
-    M = cv2.moments(cnt)
-    cx = int(M["m10"] / M["m00"])
-    cy = int(M["m01"] / M["m00"])
+    m = cv2.moments(cnt)
+    cx = int(m["m10"] / m["m00"])
+    cy = int(m["m01"] / m["m00"])
 
     cnt_norm = cnt - [cx, cy]
     cnt_scaled = cnt_norm * scale
@@ -99,7 +99,7 @@ def cv_scale_contour(cnt, scale):
 
 
 def cv_processing(
-    img_file: Path, output: Path, parameters: dict = {}, debug: bool = False
+    img_file: Path, output: Path, parameters=None, debug: bool = False
 ) -> tuple[bool, bool]:
     """cv_processing of image with saving file if all ok.
 
@@ -111,9 +111,11 @@ def cv_processing(
 
     Returns:
         bool: result of operation, True file saved
-        bool: warning if was problem with file but it skipped
+        bool: warning if was problem with file, but it skipped
     """
 
+    if parameters is None:
+        parameters = {}
     input_file: str = str(img_file)
     output_file: str = str(output.joinpath(img_file.name))
     warning: bool = False
@@ -130,8 +132,8 @@ def cv_processing(
     image_geometry_ratio = image_ratio
     image_blur = int(parameters.get("blur", 5))
 
-    MIN_HEIGHT: int = int(parameters.get("min_height", 1000))
-    MIN_WIDTH: int = round(MIN_HEIGHT / image_ratio)
+    min_height: int = int(parameters.get("min_height", 1000))
+    min_width: int = round(min_height / image_ratio)
 
     #################################################################
     # Load the Image
@@ -139,7 +141,7 @@ def cv_processing(
     try:
         image = cv2.imread(input_file)
     except Exception as e:
-        print(f"CV INPUT ERRROR {e}")
+        print(f"CV INPUT ERROR {e}")
         if not image_skip_wrong:
             copy_original(input_file, output_file)
             return True, True
@@ -147,7 +149,7 @@ def cv_processing(
 
     if isinstance(image, types.NoneType):
         print(
-            f"[red]CV INPUT ERRROR read [/red]'{input_file}' image == None. skip: {image_skip_wrong}"
+            f"[red]CV INPUT ERROR read [/red]'{input_file}' image == None. skip: {image_skip_wrong}"
         )
         if not image_skip_wrong:
             copy_original(input_file, output_file)
@@ -172,11 +174,11 @@ def cv_processing(
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # convert the image to gray scale
     blur = cv2.GaussianBlur(gray, (image_blur, image_blur), 0)  # Add Gaussian blur
 
-    MORPH = image_morph
+    morph = image_morph
 
-    if MORPH > 0:
+    if morph > 0:
         # dilate helps to remove potential holes between edge segments
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (MORPH, MORPH))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (morph, morph))
         blur = cv2.morphologyEx(blur, cv2.MORPH_CLOSE, kernel)
 
     edged = cv2.Canny(blur, 75, 200)  # Apply the Canny algorithm to find the edges
@@ -245,15 +247,16 @@ def cv_processing(
     #################################################################
 
     # go through each contour
+    doc_contours = None
     contours_found = False
     for contour in contours:
         # we approximate the contour
         peri = cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, 0.01 * peri, True)
-        # if we found a countour with 4 points we break the for loop
+        # if we found a contour with 4 points we break the for loop
         # (we can assume that we have found our document)
         if len(approx) == 4:
-            doc_cnts = approx
+            doc_contours = approx
             contours_found = True
             break
 
@@ -265,7 +268,7 @@ def cv_processing(
 
     if contours_found:
         try:
-            for contour in doc_cnts:
+            for contour in doc_contours:
                 contour[:, 0] = contour[:, 0] * coef_y
                 contour[:, 1] = contour[:, 1] * coef_x
         except UnboundLocalError:
@@ -293,16 +296,16 @@ def cv_processing(
 
     # We draw the contours on the original image not the modified one
 
-    orig_image_c = cv2.drawContours(orig_image.copy(), [doc_cnts], -1, green_color, 30)
+    orig_image_c = cv2.drawContours(orig_image.copy(), [doc_contours], -1, green_color, 30)
 
     if debug:
         cv2.imshow("Contours of the document", imutils.resize(orig_image_c, height=500))
         # apply warp perspective to get the top-down view
 
-    warped = four_point_transform(orig_image, doc_cnts.reshape(4, 2))
+    warped = four_point_transform(orig_image, doc_contours.reshape(4, 2))
 
     w = int(warped.shape[1])
-    h = int(warped.shape[0])
+    # h = int(warped.shape[0])
 
     h = int(image_geometry_ratio * w)
 
@@ -330,10 +333,10 @@ def cv_processing(
             return False, warning
 
     h, w = warped.shape[:2]
-    if w < MIN_WIDTH or h < MIN_HEIGHT:
+    if w < min_width or h < min_height:
         warning = True
         print(
-            f"[bold red]******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )[/bold red]"
+            f"[bold red]******   Result is less ( {min_width} x {min_height} )[/bold red]"
             " try to change gamma parameter."
         )
         if image_skip_wrong:
@@ -342,7 +345,7 @@ def cv_processing(
 
     if isinstance(warped, types.NoneType):
         print(
-            f"[red]CV warped ERRROR[/red]'{input_file}' warped == None. skip: {image_skip_wrong}"
+            f"[red]CV warped ERROR[/red]'{input_file}' warped == None. skip: {image_skip_wrong}"
         )
         if not image_skip_wrong:
             copy_original(input_file, output_file)
@@ -367,8 +370,10 @@ def cv_processing(
 
 
 @dur_datetime
-def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = False):
+def im_scan(file_path: Path, output: Path, parameters=None, debug: bool = False):
     # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
+    if parameters is None:
+        parameters = {}
     size = file_path.stat().st_size
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime(
         "%Y-%m-%d %H:%M"
