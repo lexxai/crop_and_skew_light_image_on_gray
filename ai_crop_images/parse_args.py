@@ -1,6 +1,7 @@
 import argparse
 import sys
 from pefile import PE
+from pathlib import Path
 
 if sys.version_info >= (3, 8):
     from importlib.metadata import version
@@ -8,10 +9,10 @@ else:
     from importlib_metadata import version
 
 
-def get_version_PE():
+def get_version_pe():
     if getattr(sys, "frozen", False):
         pe = PE(sys.executable)
-        if not "VS_FIXEDFILEINFO" in pe.__dict__:
+        if "VS_FIXEDFILEINFO" not in pe.__dict__:
             print("ERROR: Oops, has no version info. Can't continue.")
             return None
         if not pe.VS_FIXEDFILEINFO:
@@ -31,12 +32,12 @@ def get_version_PE():
 def get_version():
     try:
         version_str = version(__package__)
+        print(f"{version_str=}")
     except Exception:
-        version_str = get_version_PE()
+        version_str = get_version_pe()
         if version_str is None:
             version_str = "undefined"
     pack = __package__ if __package__ else Path(sys.executable).name
-
     return f"Version: '{ version_str }', package: {pack}"
 
 
