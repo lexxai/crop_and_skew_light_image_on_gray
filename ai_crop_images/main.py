@@ -32,51 +32,51 @@ def print_datetime(func):
     return wrapper
 
 
-def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
+def tune_parameter_dilate(parameter, iteration: int = None) -> tuple[dict, int]:
     print("[yellow] --- Automatically add 'dilate' option as last way[/yellow]")
     parameter_copy = parameter.copy()
     parameter_copy["dilate"] = True
     # print(parameter_copy)
-    return parameter_copy, id + 1
+    return parameter_copy, iteration + 1
 
 
-def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
+def tune_parameter_gamma(parameter, iteration: int = None) -> tuple[dict | None, int | None]:
     """_summary_
 
     Args:
         parameter (dict): parameters dict
-        id (int): id of steps
+        iteration (int): id of steps
 
     Returns:
         tuple[dict, float]: copy parameter , id of next steps
     """
-    STEPS = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
-    # STEPS = (0,)
 
+    # iteration_steps_gamma = (0,0)
+    iteration_steps_gamma = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
     gamma_start = parameter["gamma"]
-    if id is not None:
-        if id < len(STEPS):
+    if iteration is not None:
+        if iteration < len(iteration_steps_gamma):
             parameter_copy = parameter.copy()
             while True:
-                if id >= len(STEPS):
-                    return tune_parameter_dilate(parameter, id)
+                if iteration >= len(iteration_steps_gamma):
+                    return tune_parameter_dilate(parameter, iteration)
                     # return None, None
-                step = STEPS[id]
+                step = iteration_steps_gamma[iteration]
                 gamma = gamma_start + step
-                print(f"tune_parameter_gamma id={id+1}, {step=}, {gamma=} {gamma>1}")
+                print(f"tune_parameter_gamma id={iteration + 1}, {step=}, {gamma=} {gamma > 1}")
                 if gamma > 1:
                     parameter_copy["gamma"] = gamma
-                    return parameter_copy, id + 1
+                    return parameter_copy, iteration + 1
                 else:
-                    id += 1
+                    iteration += 1
 
         else:
-            if id == len(STEPS):
-                return tune_parameter_dilate(parameter, id)
+            if iteration == len(iteration_steps_gamma):
+                return tune_parameter_dilate(parameter, iteration)
             else:
                 return None, None
 
-    return parameter, id
+    return parameter, iteration
 
 
 def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bool]:
@@ -122,16 +122,18 @@ def save_log_file(log_file: Path, data: list[str]) -> None:
 
 @exception_keyboard
 def scan_file_dir(
-    output_dir: str,
-    im_file_path: str = None,
-    im_dir: str = None,
-    parameters: dict = {},
-    debug: bool = False,
-    log: bool = False,
-    repair: str = None,
+        output_dir: str,
+        im_file_path: str = None,
+        im_dir: str = None,
+        parameters: dict = None,
+        debug: bool = False,
+        log: bool = False,
+        repair: str = None,
 ):
-    VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
-    LOG_FILES = {"warning": Path("warning.log"), "skipped": Path("skipped.log")}
+    if parameters is None:
+        parameters = {}
+    valid_formats = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
+    log_files = {"warning": Path("warning.log"), "skipped": Path("skipped.log")}
 
     path_out = Path(output_dir)
     if not path_out.exists():
@@ -142,8 +144,8 @@ def scan_file_dir(
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
         im_file = Path(im_file_path)
-        if im_file.suffix.lower() not in VALID_FORMATS:
-            print(f"[bold red]File '{im_file_path}' not is {VALID_FORMATS}[/bold red]")
+        if im_file.suffix.lower() not in valid_formats:
+            print(f"[bold red]File '{im_file_path}' not is {valid_formats}[/bold red]")
             return
 
         if im_file.exists() and im_file.is_file():
@@ -159,19 +161,19 @@ def scan_file_dir(
             print(f"[bold red]Folder '{im_dir}' not found[/bold red]")
             return
 
-        im_files = path_in.glob("*.*")
+        # im_files = path_in.glob("*.*")
 
         im_files = list(
-            filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_in.glob("*.*"))
+            filter(lambda f: f.suffix.lower() in valid_formats, path_in.glob("*.*"))
         )
 
         # skip search same files on output folder
         if not parameters.get("all_input", False):
-            output_files = path_in.glob("*.*")
+            # output_files = path_in.glob("*.*")
 
             output_files = list(
                 filter(
-                    lambda f: f.suffix.lower() in VALID_FORMATS, path_out.glob("*.*")
+                    lambda f: f.suffix.lower() in valid_formats, path_out.glob("*.*")
                 )
             )
 
@@ -224,8 +226,8 @@ def scan_file_dir(
             print(f"[yellow]Total WARNING files: {warning_total}[/yellow]")
             print("\n".join([f.name for f in warning]))
         if log:
-            save_log_file(LOG_FILES["skipped"], skipped)
-            save_log_file(LOG_FILES["warning"], warning)
+            save_log_file(log_files["skipped"], skipped)
+            save_log_file(log_files["warning"], warning)
 
 
 def cli():
