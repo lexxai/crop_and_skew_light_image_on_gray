@@ -99,7 +99,7 @@ def cv_scale_contour(cnt, scale):
 
 
 def cv_processing(
-    img_file: Path, output: Path, parameters: dict = {}, debug: bool = False
+    img_file: Path, output: Path, parameters=None, debug: bool = False
 ) -> tuple[bool, bool]:
     """cv_processing of image with saving file if all ok.
 
@@ -114,6 +114,8 @@ def cv_processing(
         bool: warning if was problem with file but it skipped
     """
 
+    if parameters is None:
+        parameters = {}
     input_file: str = str(img_file)
     output_file: str = str(output.joinpath(img_file.name))
     warning: bool = False
