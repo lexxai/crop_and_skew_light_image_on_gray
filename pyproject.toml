@@ -1,3 +1,26 @@
+[tool.poetry]
+name = "ai_crop_images"
+version = "1.2.2"
+description = "Using Python and OpenCV to detect the border of a light image on a gray background, crops and corrects its geometry."
+authors = ["Xuno"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+opencv-python = "^4.8.0.76"
+progressbar2 = "^4.2.0"
+imutils = "^0.5.4"
+scipy = {version = "^1.11.2", python = ">=3.11,<3.13"}
+importlib-metadata = {version = "^1.0.0", python = "<3.8"}
+rich = "^13.5.2"
+
+[tool.poetry.scripts]
+ai_crop_images = "ai_crop_images.main:cli"
+
+[tool.poetry.group.dev.dependencies]
+pyinstaller-versionfile = "^2.1.1"
+pyinstaller = {version = "^5.13.2", python = ">=3.11,<3.13"}
+
 [build-system]
-requires = ["setuptools >= 65.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
