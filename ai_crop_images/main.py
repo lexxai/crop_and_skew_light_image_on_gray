@@ -137,7 +137,7 @@ def scan_file_dir(
     if not path_out.exists():
         path_out.mkdir()
 
-    repair_out = Path(repair)
+    repair_out = Path(repair if repair else "")
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
