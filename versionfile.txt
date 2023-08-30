@@ -30,12 +30,12 @@ VSVersionInfo(
       [
       StringTable(
         u'040904B0',
-        [StringStruct(u'CompanyName', u'lexxai'),
-        StringStruct(u'FileDescription', u'Using Python and OpenCV to detect the border of a white image on a gray background, crops and corrects its geometry.'),
+        [StringStruct(u'CompanyName', u'Xuno'),
+        StringStruct(u'FileDescription', u'Using Python and OpenCV to split images by segments and try analyze and OCR it.'),
         StringStruct(u'FileVersion', u'1.2.2.0'),
         StringStruct(u'InternalName', u'ai_crop_images'),
-        StringStruct(u'LegalCopyright', u'https://github.com/lexxai/crop_and_skew_white_image_on_gray'),
-        StringStruct(u'OriginalFilename', u'ai_crop_images.exe'),
+        StringStruct(u'LegalCopyright', u'https://github.com/xuno/'),
+        StringStruct(u'OriginalFilename', u'ai_crop_images_1.2.2.exe'),
         StringStruct(u'ProductName', u'ai_crop_images'),
         StringStruct(u'ProductVersion', u'1.2.2.0')])
       ]), 
