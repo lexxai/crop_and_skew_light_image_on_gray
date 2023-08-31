@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 from scipy import ndimage
 
-
+debug = True
 print(cv2.__version__)
 bd = cv2.barcode.BarcodeDetector()
 # bd = cv2.barcode.BarcodeDetector('sr.prototxt', 'sr.caffemodel')
@@ -65,8 +65,11 @@ cv2.imwrite("result.png", img_d)
 # cv2.imshow("Image", img)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
-plt.imshow(cv2.cvtColor(img_d, cv2.COLOR_BGR2RGB))
-plt.show()
+if debug:
+    plt.figure(1)
+    plt.subplot(131)
+    plt.imshow(cv2.cvtColor(img_d, cv2.COLOR_BGR2RGB))
+
 
 (x,y),(h,w),angle = rect
 x = math.ceil(x)
@@ -111,13 +114,18 @@ img_rotated_crop = cv2.copyMakeBorder(
     value=[mean, mean, mean]
 )
 
-cv2.imwrite("../tests/input/rot-crop-result.png", img_rotated_crop)
+
 
 #rotated = ndimage.rotate(img, -(90-angle), cval=255)
-plt.figure()
-plt.imshow(cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB))
-plt.imshow(cv2.cvtColor(img_rotated_crop, cv2.COLOR_BGR2RGB))
-plt.show(block=True)
+
+if debug:
+    cv2.imwrite("../tests/input/rot-crop-result.png", img_rotated_crop)
+    plt.subplot(132)
+    plt.imshow(cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB))
+    plt.subplot(133)
+    plt.imshow(cv2.cvtColor(img_rotated_crop, cv2.COLOR_BGR2RGB))
+    plt.suptitle('IMG')
+    plt.show()
 
 
 # if False:
