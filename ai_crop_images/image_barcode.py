@@ -95,6 +95,18 @@ def barcode_01():
     height, width = img.shape[:2]
 
     print(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=}  ")
+    aspect = w / h
+    aspect_ideal = 3.9386
+    aspect_corrected = aspect / aspect_ideal
+
+    corr_bar_size_width = w
+    corr_bar_size_height = h * aspect_corrected
+
+    corr_img_size_width = width
+    corr_img_size_height = height * aspect_corrected
+
+    print(f"corr bar: {corr_bar_size_width=} x {corr_bar_size_height=}  ")
+    print(f"corr img: {corr_img_size_width=} x {corr_img_size_height=}  ")
 
     M = cv2.moments(box)
     cX = int(M["m10"] / M["m00"])
@@ -106,21 +118,15 @@ def barcode_01():
     rotMat = cv2.getRotationMatrix2D(center, angle_rot, 1.0)  # Get the rotation matrix, its of shape 2x3
     img_rotated = cv2.warpAffine(img, rotMat, img.shape[1::-1])  # Rotate the image
 
-    top = 470
-    bottom = 820
-    left = 490
-    rigth = 580
+    dim = (int(corr_img_size_width), int(corr_img_size_height))
+    img_rotated = cv2.resize(img_rotated, dim)
+    cY = cY * aspect_corrected
 
-    img_rotated_crop = img_rotated[int(cY - top):int(cY + bottom), int(cX - left):int(cX + rigth)]
-
-    border_size = 40
-
-    row, col = img_rotated_crop.shape[:2]
-    bottom = img_rotated_crop[row - 2:row, 0:col]
-    mean = 255
+    border_size = 400
+    mean = 0
 
     img_rotated_crop = cv2.copyMakeBorder(
-        img_rotated_crop,
+        img_rotated,
         top=border_size,
         bottom=border_size,
         left=border_size,
@@ -129,10 +135,26 @@ def barcode_01():
         value=[mean, mean, mean]
     )
 
+    cY = cY + border_size
+    cX = cX + border_size
+
+    top = 470
+    bottom = 820
+    left = 490
+    rigth = 580
+
+    img_rotated_crop = img_rotated_crop[int(cY - top):int(cY + bottom), int(cX - left):int(cX + rigth)]
+
+
+
+    row, col = img_rotated_crop.shape[:2]
+    bottom = img_rotated_crop[row - 2:row, 0:col]
+
+
     # rotated = ndimage.rotate(img, -(90-angle), cval=255)
 
     if debug:
-        cv2.imwrite("../tests/input/rot-crop-result.png", img_rotated_crop)
+        # cv2.imwrite("../tests/input/rot-crop-result.png", img_rotated_crop)
         plt_img += 1
         plt.subplot(plt_img_rows, plt_img_cols, plt_img )
         plt.imshow(cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB))
