@@ -100,7 +100,7 @@ def barcode_01():
     aspect_corrected = aspect / aspect_ideal
 
     corr_bar_size_width = w
-    corr_bar_size_height = h * aspect_corrected
+    corr_bar_size_height = h * aspect_corrected * 1.02
 
     corr_img_size_width = width
     corr_img_size_height = height * aspect_corrected
@@ -122,7 +122,7 @@ def barcode_01():
     img_rotated = cv2.resize(img_rotated, dim)
     cY = cY * aspect_corrected
 
-    border_size = 400
+    border_size = 1000
     mean = 0
 
     img_rotated_crop = cv2.copyMakeBorder(
@@ -138,23 +138,29 @@ def barcode_01():
     cY = cY + border_size
     cX = cX + border_size
 
-    top = 470
-    bottom = 820
-    left = 490
-    rigth = 580
+    top = 6.7368 * corr_bar_size_height
+    bottom = 7.78 * corr_bar_size_height
+    left = 1.3363 * corr_bar_size_width
+    rigth = 1.5145 * corr_bar_size_width
+
+    # br = 5
+    # top = br + corr_bar_size_height / 2
+    # bottom = br + corr_bar_size_height / 2
+    # left = br + corr_bar_size_width / 2
+    # rigth = br + corr_bar_size_width / 2
+
+    print(f"CROP AREA: {top=} {bottom=} {left=} {rigth=}")
 
     img_rotated_crop = img_rotated_crop[int(cY - top):int(cY + bottom), int(cX - left):int(cX + rigth)]
 
-
-
-    row, col = img_rotated_crop.shape[:2]
-    bottom = img_rotated_crop[row - 2:row, 0:col]
+    # row, col = img_rotated_crop.shape[:2]
+    # bottom = img_rotated_crop[row - 2:row, 0:col]
 
 
     # rotated = ndimage.rotate(img, -(90-angle), cval=255)
 
     if debug:
-        # cv2.imwrite("../tests/input/rot-crop-result.png", img_rotated_crop)
+        cv2.imwrite("../tests/input/rot-crop-result.png", img_rotated_crop)
         plt_img += 1
         plt.subplot(plt_img_rows, plt_img_cols, plt_img )
         plt.imshow(cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB))
