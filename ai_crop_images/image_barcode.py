@@ -4,6 +4,90 @@ import imutils
 import matplotlib.pyplot as plt
 import math
 from scipy import ndimage
+from pyzbar.pyzbar import decode
+
+
+def barcode_qr():
+    img = cv2.imread('../tests/input/0008.jpg')
+    barcodes = decode(img)
+    for barcode in barcodes:
+        print(barcode)
+        pt1_point = [barcode.rect.left, barcode.rect.top]
+        pt2_point = [pt1_point[0] + barcode.rect.width, pt1_point[1] + barcode.rect.height]
+        cv2.rectangle(img, pt1_point, pt2_point, (255, 0, 0), 5)
+        # nr_of_points = len(barcode.polygon)
+        # for i  in range(nr_of_points):
+        #     next_point_index = (i + 1) % nr_of_points
+        #     print(i, next_point_index)
+        #     cv2.line(img, barcode.polygon[i], barcode.polygon[next_point_index], (255, 0, 0), 1*(i+1))
+        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        plt.show()
+        # cv2.imshow("Image", img)
+        # cv2.waitKey(10000)
+        # cv2.destroyAllWindows()
+
+def barcode_qr_cv():
+    debug = True
+    print(cv2.__version__)
+
+    img = cv2.imread('../tests/input/250550361.jpg')
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    qr_code_detector = cv2.QRCodeDetector()
+    # img = cv2.flip(img, 1)
+    decoded_text, points, _ = qr_code_detector.detectAndDecode(img)
+    plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    plt.show()
+
+    if points is not None:
+        nr_of_points = len(points)
+
+        for i in range(nr_of_points):
+            next_point_index = (i + 1) % nr_of_points
+            print(points[i])
+            # cv2.line(img, tuple(points[i][0]), tuple(points[next_point_index][0]), (255, 0, 0), 5)
+
+        print(decoded_text)
+
+        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        # cv2.imshow("Image", img)
+        # cv2.waitKey(10000)
+        # cv2.destroyAllWindows()
+        print("QR code ", points,  decoded_text)
+    else:
+        print("QR code not detected", decoded_text)
+
+def barcode_linear_cv():
+    debug = True
+    print(cv2.__version__)
+
+    img = cv2.imread('../tests/input/barcode.jpg')
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    bd = cv2.barcode.BarcodeDetector()
+    # bd = cv2.barcode.BarcodeDetector('sr.prototxt', 'sr.caffemodel')
+    # img = cv2.flip(img, 1)
+    retval, decoded_info, decoded_type, _ = bd.detectAndDecodeWithType(img)
+    print(retval, decoded_info, decoded_type)
+    plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    plt.show()
+    return
+
+    if points is not None:
+        nr_of_points = len(points)
+
+        for i in range(nr_of_points):
+            next_point_index = (i + 1) % nr_of_points
+            print(points[i])
+            # cv2.line(img, tuple(points[i][0]), tuple(points[next_point_index][0]), (255, 0, 0), 5)
+
+        print(decoded_text)
+
+        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        # cv2.imshow("Image", img)
+        # cv2.waitKey(10000)
+        # cv2.destroyAllWindows()
+        print("QR code ", points,  decoded_text)
+    else:
+        print("QR code not detected", decoded_text)
 
 
 def barcode_01():
@@ -202,4 +286,7 @@ def barcode_01():
 
 
 if __name__ == '__main__':
-    barcode_01()
+    # barcode_01()
+    # barcode_qr()
+    # barcode_qr_cv()
+    barcode_linear_cv()

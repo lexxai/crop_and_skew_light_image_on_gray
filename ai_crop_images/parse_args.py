@@ -1,6 +1,7 @@
 import argparse
 import sys
 from pefile import PE
+from pathlib import Path
 
 if sys.version_info >= (3, 8):
     from importlib.metadata import version
