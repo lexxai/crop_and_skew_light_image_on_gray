@@ -313,7 +313,7 @@ def cv_processing(
     # convert the warped image to grayscale
     # warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
     if debug:
-        # cv2.imwrite("output" + "/" + os.path.basename(img_file), warped)
+        # cv2.imwrite("output_" + "/" + os.path.basename(img_file), warped)
         cv2.imshow("Scanned", imutils.resize(warped, height=750))
         cv2.waitKey(5000)
         cv2.destroyAllWindows()
@@ -369,8 +369,10 @@ def cv_processing(
 
 
 @dur_datetime
-def im_scan(file_path: Path, output: Path, parameters: dict = {}, debug: bool = False):
+def im_scan(file_path: Path, output: Path, parameters=None, debug: bool = False):
     # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
+    if parameters is None:
+        parameters = {}
     size = file_path.stat().st_size
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime(
         "%Y-%m-%d %H:%M"

@@ -54,14 +54,19 @@ def app_arg():
     group.add_argument("--images", help="Directory of images to be scanned")
     group.add_argument("--image", help="Path to single image to be scanned")
     ap.add_argument(
-        "--output",
-        default="output",
-        help="Directory to output result images, default: 'output'",
+        "--output_",
+        default="output_",
+        help="Directory to output_ result images, default: 'output_'",
+    )
+    ap.add_argument(
+        "--barcode_base",
+        action="store_true",
+        help="Use barcode_base search boundary method, by default: disabled",
     )
     ap.add_argument(
         "--repair",
         default=None,
-        help="If the output folder is not empty, then save to the recovery folder, by default: None",
+        help="If the output_ folder is not empty, then save to the recovery folder, by default: None",
     )
     ap.add_argument(
         "--gamma",
@@ -103,7 +108,7 @@ def app_arg():
         "--min_height",
         type=int,
         default="1000",
-        help="desired minimum height of the output image in px, default: '1000'",
+        help="desired minimum height of the output_ image in px, default: '1000'",
     )
     ap.add_argument(
         "--detection_height",
@@ -131,14 +136,14 @@ def app_arg():
     ap.add_argument(
         "--noskip",
         action="store_true",
-        help="no skip wrong images, like output same size, "
+        help="no skip wrong images, like output_ same size, "
         "or result less than 800x1000. Copy original if problem. Default: skipped",
     )
     ap.add_argument(
         "--all_input",
         action="store_true",
         help="Scan all images in the input folder without skipping the search "
-        "for already processed images in the output folder",
+        "for already processed images in the output_ folder",
     )
 
     args = ap.parse_args()

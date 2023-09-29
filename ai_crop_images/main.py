@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 from progressbar import progressbar
+
+from ai_crop_images.image_barcode import im_scan_barcode
 from ai_crop_images.image_scanner import im_scan
 from ai_crop_images.parse_args import app_arg
 
@@ -138,6 +140,7 @@ def scan_file_dir(
         path_out.mkdir()
 
     repair_out = Path(repair if repair else "")
+    barcode_base = parameters.get("barcode_base", False)
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
@@ -147,7 +150,10 @@ def scan_file_dir(
             return
 
         if im_file.exists() and im_file.is_file():
-            im_scan(im_file, path_out, parameters=parameters, debug=debug)
+            if barcode_base:
+                im_scan_barcode(im_file, path_out, parameters=parameters, debug=debug)
+            else:
+                im_scan(im_file, path_out, parameters=parameters, debug=debug)
         else:
             print(f"[bold red]File '{im_file_path}' not found[/bold red]")
             return
@@ -165,7 +171,7 @@ def scan_file_dir(
             filter(lambda f: f.suffix.lower() in VALID_FORMATS, path_in.glob("*.*"))
         )
 
-        # skip search same files on output folder
+        # skip search same files on output_ folder
         if not parameters.get("all_input", False):
             output_files = path_in.glob("*.*")
 
@@ -201,6 +207,7 @@ def scan_file_dir(
         print(
             f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
         )
+
         skipped = []
         warning = []
         for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
@@ -243,6 +250,7 @@ def cli():
         "all_input": args.all_input,
         "no_iteration": args.no_iteration,
         "blur": args.blur,
+        "barcode_base": args.blur,
     }
     scan_file_dir(
         args.output,
