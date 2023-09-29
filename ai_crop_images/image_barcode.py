@@ -9,6 +9,10 @@ import math
 from scipy import ndimage
 from pyzbar.pyzbar import decode
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def barcode_qr():
     img = cv2.imread("../tests/input/0008.jpg")
@@ -101,7 +105,6 @@ def barcode_linear_cv():
 def im_scan_barcode(
     file_path: Path, output: Path, parameters=None, debug: bool = False
 ):
-    # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     if parameters is None:
         parameters = {}
 
@@ -110,12 +113,11 @@ def im_scan_barcode(
         "%Y-%m-%d %H:%M"
     )
     modified = str(date_m)
-    print(f"File: '{file_path.name}' {size=} bytes, {modified=}")
+    logger.debug(f"File: '{file_path.name}' {size=} bytes, {modified=}")
     return barcode_scan(file_path, output, parameters=parameters, debug=debug)
 
 
 def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = False):
-    print(cv2.__version__)
     success, warn = False, False
     if parameters is None:
         parameters = {}
@@ -204,10 +206,10 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
 
     height, width = img.shape[:2]
 
-    print(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=}  ")
+    logger.debug(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=}  ")
 
     if width < 300 or height < 100:
-        print("box: not found ")
+        logger.debug("box: not found ")
         return success, warn
 
     aspect = w / h
@@ -220,14 +222,14 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
     corr_img_size_width = width
     corr_img_size_height = height * aspect_corrected
 
-    print(f"corr bar: {corr_bar_size_width=} x {corr_bar_size_height=}  ")
-    print(f"corr img: {corr_img_size_width=} x {corr_img_size_height=}  ")
+    logger.debug(f"corr bar: {corr_bar_size_width=} x {corr_bar_size_height=}  ")
+    logger.debug(f"corr img: {corr_img_size_width=} x {corr_img_size_height=}  ")
 
     M = cv2.moments(box)
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
 
-    print(f"box: {cX=} {cY=} ")
+    logger.debug(f"box: {cX=} {cY=} ")
     angle_rot = -(90 - angle)
     center = (cX, cY)
     rotMat = cv2.getRotationMatrix2D(
@@ -266,7 +268,7 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
     # left = br + corr_bar_size_width / 2
     # rigth = br + corr_bar_size_width / 2
 
-    print(f"CROP AREA: {top=} {bottom=} {left=} {rigth=}")
+    logger.debug(f"CROP AREA: {top=} {bottom=} {left=} {rigth=}")
 
     img_rotated_crop = img_rotated_crop[
         int(cY - top) : int(cY + bottom), int(cX - left) : int(cX + rigth)

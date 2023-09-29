@@ -1,10 +1,14 @@
 from datetime import datetime
 from pathlib import Path
-from progressbar import progressbar
+
+# from progressbar import progressbar
+from tqdm import tqdm
+import logging
 
 from ai_crop_images.image_barcode import im_scan_barcode
 from ai_crop_images.image_scanner import im_scan
 from ai_crop_images.parse_args import app_arg
+
 
 import sys
 import gc
@@ -210,14 +214,12 @@ def scan_file_dir(
 
         skipped = []
         warning = []
-        for i in progressbar(range(total_files_not_pass), redirect_stdout=True):
+        for i in tqdm(range(total_files_not_pass), total=total_files_not_pass):
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
                 if barcode_base:
-                    success, warn = im_scan_barcode(
-                        im, path_out, parameters=parameters, debug=debug
-                    )
+                    success, warn = im_scan_barcode(im, path_out, parameters=parameters)
                 else:
                     success, warn = iteration_scan(im, parameters, path_out)
                 if not success:
@@ -242,7 +244,8 @@ def scan_file_dir(
 
 def cli():
     args = app_arg()
-
+    # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.ERROR)
     parameters = {
         "gamma": float(args.gamma),
         "min_height ": int(args.min_height),
@@ -269,6 +272,9 @@ def cli():
     d = datetime.now().strftime("%Y-%m-%d %H:%M")
     print(f"\nEND: {d}")
 
+
+logger = logging.getLogger()
+# logging.basicConfig(level=logging.ERROR)
 
 if __name__ == "__main__":
     cli()
