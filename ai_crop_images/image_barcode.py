@@ -116,6 +116,7 @@ def im_scan_barcode(
 
 def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = False):
     print(cv2.__version__)
+    success, warn = False, False
     if parameters is None:
         parameters = {}
     input_file: str = str(file_path)
@@ -184,7 +185,6 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-    if debug:
         cv2.imwrite("result.png", img_d)
         plt.figure(1)
         plt_img_rows = 1
@@ -205,6 +205,11 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
     height, width = img.shape[:2]
 
     print(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=}  ")
+
+    if width < 300 or height < 100:
+        print("box: not found ")
+        return success, warn
+
     aspect = w / h
     aspect_ideal = 3.9386
     aspect_corrected = aspect / aspect_ideal
@@ -292,6 +297,8 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
     img_rotated = np.zeros(0)
     img = np.zeros(0)
     gray = np.zeros(0)
+    success = True
+    return success, warn
 
 
 def barcode_01(file_path: Path, output: Path, parameters=None, debug: bool = False):

@@ -139,7 +139,7 @@ def scan_file_dir(
     if not path_out.exists():
         path_out.mkdir()
 
-    repair_out = Path(repair if repair else "")
+    repair_out: Path | None = repair
     barcode_base = parameters.get("barcode_base", False)
 
     # Scan single image specified by command line argument --image <IMAGE_PATH>
@@ -200,9 +200,9 @@ def scan_file_dir(
         total_files_not_pass = len(im_files_not_pass)
 
         if total_files != total_files_not_pass:
-            if not repair_out.is_dir():
-                repair_out.mkdir()
-            path_out = repair_out
+            if repair_out:
+                repair_out.mkdir(exist_ok=True, parents=True)
+                path_out = repair_out
 
         print(
             f"total input files: {total_files}, ready for operations: {total_files_not_pass}"
@@ -214,7 +214,12 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                success, warn = iteration_scan(im, parameters, path_out)
+                if barcode_base:
+                    success, warn = im_scan_barcode(
+                        im, path_out, parameters=parameters, debug=debug
+                    )
+                else:
+                    success, warn = iteration_scan(im, parameters, path_out)
                 if not success:
                     skipped.append(im)
                 if warn:

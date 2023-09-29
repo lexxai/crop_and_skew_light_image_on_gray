@@ -54,9 +54,9 @@ def app_arg():
     group.add_argument("--images", help="Directory of images to be scanned")
     group.add_argument("--image", help="Path to single image to be scanned")
     ap.add_argument(
-        "--output_",
-        default="output_",
-        help="Directory to output_ result images, default: 'output_'",
+        "--output",
+        default="output",
+        help="Directory to output_ result images, default: 'output'",
     )
     ap.add_argument(
         "--barcode_base",
@@ -66,7 +66,8 @@ def app_arg():
     ap.add_argument(
         "--repair",
         default=None,
-        help="If the output_ folder is not empty, then save to the recovery folder, by default: None",
+        help="If the output folder is not empty, then save to the recovery folder, by default: None",
+        type=Path,
     )
     ap.add_argument(
         "--gamma",
