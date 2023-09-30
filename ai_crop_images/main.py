@@ -260,15 +260,18 @@ def cli():
         "blur": args.blur,
         "barcode_base": args.blur,
     }
-    scan_file_dir(
-        args.output,
-        args.image,
-        args.images,
-        parameters=parameters,
-        debug=args.debug,
-        log=args.log,
-        repair=args.repair,
-    )
+    try:
+        scan_file_dir(
+            args.output,
+            args.image,
+            args.images,
+            parameters=parameters,
+            debug=args.debug,
+            log=args.log,
+            repair=args.repair,
+        )
+    except Exception as e:
+        print(f"Other error of 'scan_file_dir': {e}")
     d = datetime.now().strftime("%Y-%m-%d %H:%M")
     print(f"\nEND: {d}")
 
