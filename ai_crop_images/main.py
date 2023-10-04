@@ -1,13 +1,23 @@
+import multiprocessing
 from datetime import datetime
 from pathlib import Path
 
 # from progressbar import progressbar
 from tqdm import tqdm
 import logging
+from logging.handlers import RotatingFileHandler
+from multiprocessing import freeze_support
+import concurrent.futures
 
 from ai_crop_images.image_barcode import im_scan_barcode
-from ai_crop_images.image_scanner import im_scan
+from ai_crop_images.image_scanner import im_scan, iteration_scan
 from ai_crop_images.parse_args import app_arg
+
+from ai_crop_images.logger import (
+    get_logger_multicore,
+    build_queue_listener,
+    worker_configurer,
+)
 
 
 import sys
@@ -38,87 +48,6 @@ def print_datetime(func):
     return wrapper
 
 
-def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
-    print("[yellow] --- Automatically add 'dilate' option as last way[/yellow]")
-    parameter_copy = parameter.copy()
-    parameter_copy["dilate"] = True
-    # print(parameter_copy)
-    return parameter_copy, id + 1
-
-
-def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
-    """_summary_
-
-    Args:
-        parameter (dict): parameters dict
-        id (int): id of steps
-
-    Returns:
-        tuple[dict, float]: copy parameter , id of next steps
-    """
-    STEPS = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
-    # STEPS = (0,)
-
-    gamma_start = parameter["gamma"]
-    if id is not None:
-        if id < len(STEPS):
-            parameter_copy = parameter.copy()
-            while True:
-                if id >= len(STEPS):
-                    return tune_parameter_dilate(parameter, id)
-                    # return None, None
-                step = STEPS[id]
-                gamma = gamma_start + step
-                print(f"tune_parameter_gamma id={id+1}, {step=}, {gamma=} {gamma>1}")
-                if gamma > 1:
-                    parameter_copy["gamma"] = gamma
-                    return parameter_copy, id + 1
-                else:
-                    id += 1
-
-        else:
-            if id == len(STEPS):
-                return tune_parameter_dilate(parameter, id)
-            else:
-                return None, None
-
-    return parameter, id
-
-
-def iteration_scan(im: Path, path_out: Path, parameters: dict) -> dict:
-    result = {"success": None, "warn": None, "im": im}
-    success = None
-    warn = None
-    if parameters.get("no_iteration", False):
-        success, warn = im_scan(
-            im,
-            path_out,
-            parameters=parameters,
-        )
-    else:
-        is_done = False
-        iteration = 0
-        while not is_done:
-            parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
-            if parameters_work is not None:
-                gamma = parameters_work["gamma"]
-                dilate = parameters_work["dilate"]
-                print(f"\n[green]# {iteration=}, {gamma=}, {dilate=}[/green]")
-                success, warn = im_scan(
-                    im,
-                    path_out,
-                    parameters=parameters_work,
-                )
-                if not warn:
-                    is_done = True
-            else:
-                print("\n[red] ***** All iterations failed, operation failed[/red]\n")
-                break
-    result["success"] = success
-    result["warn"] = warn
-    return result
-
-
 def save_log_file(log_file: Path, data: list[str]) -> None:
     if data:
         with open(str(log_file), "w") as f:
@@ -140,7 +69,12 @@ def scan_file_dir(
     repair: str = None,
 ):
     VALID_FORMATS = (".jpg", ".jpeg", ".jp2", ".png", ".bmp", ".tiff", ".tif")
-    LOG_FILES = {"warning": Path("warning.log"), "skipped": Path("skipped.log")}
+    log_path = Path("log")
+    log_path.mkdir(exist_ok=True, parents=True)
+    LOG_FILES = {
+        "warning": log_path / Path("files_warning.log"),
+        "skipped": log_path / Path("files_skipped.log"),
+    }
 
     path_out = Path(output_dir)
     if not path_out.exists():
@@ -152,7 +86,9 @@ def scan_file_dir(
     if im_file_path:
         im_file = Path(im_file_path)
         if im_file.suffix.lower() not in VALID_FORMATS:
-            print(f"[bold red]File '{im_file_path}' not is {VALID_FORMATS}[/bold red]")
+            logger.debug(
+                f"[bold red]File '{im_file_path}' not is {VALID_FORMATS}[/bold red]"
+            )
             return
 
         if im_file.exists() and im_file.is_file():
@@ -222,21 +158,54 @@ def scan_file_dir(
 
         skipped = []
         warning = []
-        for i in tqdm(range(total_files_not_pass), total=total_files_not_pass):
-            im = im_files_not_pass[i]
-            # print(f"{i}. im_scan({im})")
-            if im.is_file():
-                if barcode_method:
-                    result = im_scan_barcode(im, path_out, parameters, barcode_method)
-                else:
-                    result = iteration_scan(im, path_out, parameters)
+        futures = []
+        queue, listener = build_queue_listener()
+        with concurrent.futures.ProcessPoolExecutor() as pool:
+            for i in range(total_files_not_pass):
+                im = im_files_not_pass[i]
+                # print(f"{i}. im_scan({im})")
+                if im.is_file():
+                    if barcode_method:
+                        future = pool.submit(
+                            im_scan_barcode,
+                            im,
+                            path_out,
+                            parameters,
+                            False,
+                            barcode_method,
+                            queue,
+                            worker_configurer,
+                        )
+                        futures.append(future)
+                    else:
+                        future = pool.submit(
+                            iteration_scan,
+                            im,
+                            path_out,
+                            parameters,
+                            queue,
+                            worker_configurer,
+                        )
+                        futures.append(future)
 
-                if not result["success"]:
-                    skipped.append(result["im"])
-                if result["warn"]:
-                    warning.append(result["im"])
-            # be ready for new loop
-            gc.collect()
+            results = [
+                future.result()
+                for future in tqdm(
+                    concurrent.futures.as_completed(futures),
+                    total=len(futures),
+                )
+            ]
+
+        queue.put_nowait(None)
+        listener.join()
+
+        for result in results:
+            if not result["success"]:
+                skipped.append(result["im"])
+            if result["warn"]:
+                warning.append(result["im"])
+        # be ready for new loop
+        gc.collect()
 
         if skipped:
             skipped_total = len(skipped)
@@ -251,10 +220,36 @@ def scan_file_dir(
             save_log_file(LOG_FILES["warning"], warning)
 
 
+def init_logger(arg_log_path: Path, debug: bool = False, log: bool = False):
+    global logger
+    # logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    logger = get_logger_multicore("ai_crop_images", arg_log_path, debug, log)
+
+
+def init_logger_iscan(_name: str = None):
+    global logger
+    name = "" if _name is None else f".{_name}"
+    logger = logging.getLogger(f"{__name__}{name}")
+
+
 def cli():
+    freeze_support()
     args = app_arg()
     # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.ERROR)
+    log_dir = Path("log")
+    # logfile = log_dir.joinpath("debug.log")
+    # log_dir.mkdir(exist_ok=True, parents=True)
+    # logging.basicConfig(
+    #     level=logging.DEBUG if args.debug else logging.ERROR,
+    #     handlers=[RotatingFileHandler(logfile, maxBytes=20000, backupCount=10)],
+    # )
+    init_logger(log_dir, debug=args.debug, log=True)
+    # handler = RotatingFileHandler(logfile, maxBytes=20000, backupCount=10)
+    # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)
+    # logger.addHandler(handler)
+    # for _ in range(10000):
+    #     logger.debug("Hello, world!")
+    # exit()
     logging.getLogger("matplotlib").setLevel(logging.ERROR)
     logging.getLogger("PIL").setLevel(logging.ERROR)
 
@@ -288,7 +283,8 @@ def cli():
     print(f"\nEND: {d}")
 
 
-logger = logging.getLogger()
+logger: logging
+# logger = logging.getLogger("ai_crop_images")
 # logging.basicConfig(level=logging.ERROR)
 
 if __name__ == "__main__":

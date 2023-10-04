@@ -1,3 +1,4 @@
+import multiprocessing
 from datetime import datetime
 from pathlib import Path
 
@@ -13,7 +14,14 @@ import math
 
 import logging
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
+logger: logging
+
+
+def init_logger(_name: str = None):
+    global logger
+    name = "" if _name is None else f".{_name}"
+    logger = logging.getLogger(f"{__name__}{name}")
 
 
 # def barcode_pyzbar(
@@ -171,11 +179,16 @@ def im_scan_barcode(
     parameters=None,
     debug: bool = False,
     barcode_method: int = 0,
+    queue: multiprocessing.Queue = None,
+    configurer=None,
 ) -> dict:
     if parameters is None:
         parameters = {}
     result = {"success": False, "warn": False, "im": file_path}
     success, warn = False, False
+    if configurer is not None:
+        configurer(queue)
+    init_logger(file_path.name)
     size = file_path.stat().st_size
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime(
         "%Y-%m-%d %H:%M"

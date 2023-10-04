@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ai_crop_images"
-version = "1.4.1"
+version = "1.5.0"
 description = "Using Python and OpenCV to detect the border of a light image on a gray background, crops and corrects its geometry."
 authors = ["Xuno"]
 readme = "README.md"
@@ -13,7 +13,7 @@ scipy = {version = "^1.11.2", python = ">=3.11,<3.13"}
 importlib-metadata = {version = "^1.0.0", python = "<3.8"}
 rich = "^13.5.2"
 matplotlib = "^3.7.2"
-pyzbar = "^0.1.9"
+# pyzbar = "^0.1.9"
 tqdm = "^4.66.1"
 opencv-contrib-python = "^4.8.1.78"
 

@@ -1,3 +1,4 @@
+import multiprocessing
 from datetime import datetime
 from pathlib import Path
 from rich import print
@@ -11,15 +12,25 @@ import cv2
 from pathlib import Path
 import shutil
 import types
+import logging
 
 # import os
 import numpy as np
 
 
+logger: logging
+
+
+def init_logger(_name: str = None):
+    global logger
+    name = "" if _name is None else f".{_name}"
+    logger = logging.getLogger(f"{__name__}{name}")
+
+
 def start_datetime(func):
     def wrapper(*args, **kwargs):
         d = datetime.now()
-        print(f" *** Start:  {d}")
+        logger.debug(f" *** Start:  {d}")
         return func(*args, **kwargs)
 
     return wrapper
@@ -29,7 +40,7 @@ def end_datetime(func):
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         d = datetime.now()
-        print(f" *** End:  {d}")
+        logger.debug(f" *** End:  {d}")
         return result
 
     return wrapper
@@ -39,20 +50,20 @@ def dur_datetime(func):
     def wrapper(*args, **kwargs):
         d1 = datetime.now()
         d1_fmt = d1.strftime("%Y-%m-%d %H:%M")
-        print(f"\n *** Start:  {d1_fmt}")
+        logger.debug(f"*** Start:  {d1_fmt}")
         result = func(*args, **kwargs)
         d2 = datetime.now()
         diff = d2 - d1
         d2_fmt = d2.strftime("%Y-%m-%d %H:%M")
-        print(f" *** End:  {d2_fmt}, duration: {diff}")
+        logger.debug(f" *** End:  {d2_fmt}, duration: {diff}")
         return result
 
     return wrapper
 
 
 def copy_original(input_file: str, output_file: str) -> bool:
-    print(
-        f"[red] Problem read file '{input_file}', then just copy original to destianton [/red]"
+    logger.debug(
+        f" Problem read file '{input_file}', then just copy original to destianton "
     )
     return shutil.copyfile(input_file, output_file)
 
@@ -141,15 +152,15 @@ def cv_processing(
     try:
         image = cv2.imread(input_file)
     except Exception as e:
-        print(f"CV INPUT ERRROR {e}")
+        logger.debug(f"CV INPUT ERRROR {e}")
         if not image_skip_wrong:
             copy_original(input_file, output_file)
             return True, True
         return False, True
 
     if isinstance(image, types.NoneType):
-        print(
-            f"[red]CV INPUT ERRROR read [/red]'{input_file}' image == None. skip: {image_skip_wrong}"
+        logger.debug(
+            f"CV INPUT ERRROR read '{input_file}' image == None. skip: {image_skip_wrong}"
         )
         if not image_skip_wrong:
             copy_original(input_file, output_file)
@@ -225,7 +236,7 @@ def cv_processing(
             image_bound = image.copy()
             for i, c in enumerate(contours):
                 color = 255 - (i * c_step)
-                # print(color)
+                # logger.debug(color)
                 # get bounding rect
                 (x, y, w, h) = cv2.boundingRect(c)
                 # draw red rect
@@ -272,25 +283,22 @@ def cv_processing(
                 contour[:, 1] = contour[:, 1] * coef_x
         except UnboundLocalError:
             warning = True
-            print(
-                "[bold red]** UnboundLocalError NOT FOUND contours[/bold red], "
+            logger.debug(
+                "** UnboundLocalError NOT FOUND contours, "
                 "try to change gamma parameter."
             )
             if not image_skip_wrong:
                 copy_original(input_file, output_file)
                 return True, True
-            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            logger.debug("Image SKIPPED.")
             return False, warning
     else:
         warning = True
-        print(
-            "[bold red]*******  NOT FOUND contours[/bold red], "
-            "try to change gamma parameter."
-        )
+        logger.debug("*******  NOT FOUND contours, " "try to change gamma parameter.")
         if not image_skip_wrong:
             copy_original(input_file, output_file)
             return True, True
-        print("[bold yellow]Image SKIPPED.[/bold yellow]")
+        logger.debug("Image SKIPPED.")
         return False, warning
 
     # We draw the contours on the original image not the modified one
@@ -318,33 +326,34 @@ def cv_processing(
         cv2.waitKey(5000)
         cv2.destroyAllWindows()
 
-    print(f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} ")
-    print(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
+    logger.debug(
+        f"Original image dimension: {orig_image.shape[1]} x {orig_image.shape[0]} "
+    )
+    logger.debug(f"Result   image dimension: {warped.shape[1]} x {warped.shape[0]} ")
 
     if warped.shape[:2] == orig_image.shape[:2]:
         warning = True
-        print(
-            "[bold red]******   Result is same as ORIGINAL[/bold red]"
-            " try to change gamma parameter."
+        logger.debug(
+            "******   Result is same as ORIGINAL" " try to change gamma parameter."
         )
         if image_skip_wrong:
-            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            logger.debug("Image SKIPPED.")
             return False, warning
 
     h, w = warped.shape[:2]
     if w < MIN_WIDTH or h < MIN_HEIGHT:
         warning = True
-        print(
-            f"[bold red]******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )[/bold red]"
+        logger.debug(
+            f"******   Result is less ( {MIN_WIDTH} x {MIN_HEIGHT} )"
             " try to change gamma parameter."
         )
         if image_skip_wrong:
-            print("[bold yellow]Image SKIPPED.[/bold yellow]")
+            logger.debug("Image SKIPPED.")
             return False, warning
 
     if isinstance(warped, types.NoneType):
-        print(
-            f"[red]CV warped ERRROR[/red]'{input_file}' warped == None. skip: {image_skip_wrong}"
+        logger.debug(
+            f"CV warped ERRROR'{input_file}' warped == None. skip: {image_skip_wrong}"
         )
         if not image_skip_wrong:
             copy_original(input_file, output_file)
@@ -363,14 +372,19 @@ def cv_processing(
         for contour in contours:
             contour = np.empty(0)
     except Exception as e:
-        print("Clear memory", e)
+        logger.debug("Clear memory", e)
 
     return result, warning
 
 
-@dur_datetime
-def im_scan(file_path: Path, output: Path, parameters=None, debug: bool = False):
-    # print(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
+# @dur_datetime
+def im_scan(
+    file_path: Path,
+    output: Path,
+    parameters=None,
+    debug: bool = False,
+):
+    # logger.debug(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     if parameters is None:
         parameters = {}
     size = file_path.stat().st_size
@@ -378,5 +392,98 @@ def im_scan(file_path: Path, output: Path, parameters=None, debug: bool = False)
         "%Y-%m-%d %H:%M"
     )
     modified = str(date_m)
-    print(f"File: '{file_path.name}' {size=} bytes, {modified=}")
+    logger.debug(f"File: '{file_path.name}' {size=} bytes, {modified=}")
     return cv_processing(file_path, output, parameters=parameters, debug=debug)
+
+
+def tune_parameter_dilate(parameter, id: int = None) -> tuple[dict, int]:
+    logger.debug(" --- Automatically add 'dilate' option as last way")
+    parameter_copy = parameter.copy()
+    parameter_copy["dilate"] = True
+    # logger.debug(parameter_copy)
+    return parameter_copy, id + 1
+
+
+def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
+    """_summary_
+
+    Args:
+        parameter (dict): parameters dict
+        id (int): id of steps
+
+    Returns:
+        tuple[dict, float]: copy parameter , id of next steps
+    """
+    STEPS = (0, -1, -1.5, -2, -2.5, -3, -3.5, 1, 1.5, 2, 2.5, 3, 3.5, 4)
+    # STEPS = (0,)
+
+    gamma_start = parameter["gamma"]
+    if id is not None:
+        if id < len(STEPS):
+            parameter_copy = parameter.copy()
+            while True:
+                if id >= len(STEPS):
+                    return tune_parameter_dilate(parameter, id)
+                    # return None, None
+                step = STEPS[id]
+                gamma = gamma_start + step
+                logger.debug(
+                    f"tune_parameter_gamma id={id+1}, {step=}, {gamma=} {gamma>1}"
+                )
+                if gamma > 1:
+                    parameter_copy["gamma"] = gamma
+                    return parameter_copy, id + 1
+                else:
+                    id += 1
+
+        else:
+            if id == len(STEPS):
+                return tune_parameter_dilate(parameter, id)
+            else:
+                return None, None
+
+    return parameter, id
+
+
+def iteration_scan(
+    im: Path,
+    path_out: Path,
+    parameters: dict,
+    queue: multiprocessing.Queue = None,
+    configurer=None,
+) -> dict:
+    result = {"success": None, "warn": None, "im": im}
+    success = None
+    warn = None
+    if configurer is not None:
+        configurer(queue)
+    init_logger(im.name)
+    # init_logger_iscan(im.name)
+    if parameters.get("no_iteration", False):
+        success, warn = im_scan(
+            im,
+            path_out,
+            parameters=parameters,
+        )
+    else:
+        is_done = False
+        iteration = 0
+        while not is_done:
+            parameters_work, iteration = tune_parameter_gamma(parameters, iteration)
+            if parameters_work is not None:
+                gamma = parameters_work["gamma"]
+                dilate = parameters_work["dilate"]
+                logger.debug(f"# {iteration=}, {gamma=}, {dilate=}")
+                success, warn = im_scan(
+                    im,
+                    path_out,
+                    parameters=parameters_work,
+                )
+                if not warn:
+                    is_done = True
+            else:
+                logger.debug(" ***** All iterations failed, operation failed")
+                break
+    result["success"] = success
+    result["warn"] = warn
+    return result
