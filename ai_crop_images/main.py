@@ -85,7 +85,8 @@ def tune_parameter_gamma(parameter, id: int = None) -> tuple[dict, int]:
     return parameter, id
 
 
-def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bool]:
+def iteration_scan(im: Path, path_out: Path, parameters: dict) -> dict:
+    result = {"success": None, "warn": None, "im": im}
     success = None
     warn = None
     if parameters.get("no_iteration", False):
@@ -113,7 +114,9 @@ def iteration_scan(im: Path, parameters: dict, path_out: Path) -> tuple[bool, bo
             else:
                 print("\n[red] ***** All iterations failed, operation failed[/red]\n")
                 break
-    return success, warn
+    result["success"] = success
+    result["warn"] = warn
+    return result
 
 
 def save_log_file(log_file: Path, data: list[str]) -> None:
@@ -144,7 +147,7 @@ def scan_file_dir(
         path_out.mkdir()
 
     repair_out: Path | None = repair
-    barcode_base = parameters.get("barcode_base", False)
+    barcode_method = parameters.get("barcode_method", 0)
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
         im_file = Path(im_file_path)
@@ -153,8 +156,14 @@ def scan_file_dir(
             return
 
         if im_file.exists() and im_file.is_file():
-            if barcode_base:
-                im_scan_barcode(im_file, path_out, parameters=parameters, debug=debug)
+            if barcode_method:
+                im_scan_barcode(
+                    im_file,
+                    path_out,
+                    parameters=parameters,
+                    debug=debug,
+                    barcode_method=barcode_method,
+                )
             else:
                 im_scan(im_file, path_out, parameters=parameters, debug=debug)
         else:
@@ -217,14 +226,15 @@ def scan_file_dir(
             im = im_files_not_pass[i]
             # print(f"{i}. im_scan({im})")
             if im.is_file():
-                if barcode_base:
-                    success, warn = im_scan_barcode(im, path_out, parameters=parameters)
+                if barcode_method:
+                    result = im_scan_barcode(im, path_out, parameters, barcode_method)
                 else:
-                    success, warn = iteration_scan(im, parameters, path_out)
-                if not success:
-                    skipped.append(im)
-                if warn:
-                    warning.append(im)
+                    result = iteration_scan(im, path_out, parameters)
+
+                if not result["success"]:
+                    skipped.append(result["im"])
+                if result["warn"]:
+                    warning.append(result["im"])
             # be ready for new loop
             gc.collect()
 
@@ -260,7 +270,7 @@ def cli():
         "all_input": args.all_input,
         "no_iteration": args.no_iteration,
         "blur": args.blur,
-        "barcode_base": args.barcode_base,
+        "barcode_method": args.barcode_method,
     }
     try:
         scan_file_dir(

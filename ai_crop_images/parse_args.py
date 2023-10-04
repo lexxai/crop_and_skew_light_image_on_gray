@@ -59,9 +59,13 @@ def app_arg():
         help="Directory to output_ result images, default: 'output'",
     )
     ap.add_argument(
-        "--barcode_base",
-        action="store_true",
-        help="Use barcode_base search boundary method, by default: disabled",
+        "--barcode_method",
+        default=0,
+        choices=[0, 1, 2],
+        help="Force to use search boundary method."
+        " 1 - opencv barcode lib, 2 - opencv geometry analise,"
+        " by default: 0 - disabled",
+        type=int,
     )
     ap.add_argument(
         "--repair",
