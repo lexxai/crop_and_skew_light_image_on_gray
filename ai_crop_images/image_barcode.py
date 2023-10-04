@@ -158,9 +158,7 @@ def scale_contour(cnt, scale_x, scale_y=None):
     cy: int = int(M["m01"] / M["m00"])
 
     cnt_norm = cnt - [cx, cy]
-    print("1. {cnt_norm=}")
     cnt_scaled = cnt_norm * (scale_x, scale_y)
-    print("2. {cnt_scaled=}")
     cnt_scaled = cnt_scaled + (cx, cy)
     cnt_scaled = cnt_scaled.astype(np.int32)
 
@@ -170,41 +168,169 @@ def scale_contour(cnt, scale_x, scale_y=None):
 def barcode_linear_cv(
     file_path: Path, output: Path, parameters=None, debug: bool = False
 ) -> (bool, bool):
-    print(cv2.__version__)
-
-    img = cv2.imread(str(file_path))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # print(cv2.__version__)
+    success, warn = False, False
+    if parameters is None:
+        parameters = {}
+    input_file: str = str(file_path)
+    output_file: str = str(output.joinpath(file_path.name))
+    try:
+        img = cv2.imread(input_file)
+    except OSError as e:
+        logger.error(e)
+        return success, warn
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     bd = cv2.barcode.BarcodeDetector()
-    # bd = cv2.barcode.BarcodeDetector('sr.prototxt', 'sr.caffemodel')
-    # img = cv2.flip(img, 1)
-    retval, points = bd.detect(img)
-    if retval:
-        # points = rotate_contour(points, 2)
+    retval, points = bd.detect(gray)
+    if not retval:
+        logger.debug("BOX NOT FOUND")
+        return success, warn
+    # print(points)
+    # sort contours by area anf get bigger
+    try:
+        points = sorted(points, key=cv2.contourArea, reverse=True)[0]
+    except IndexError:
+        return success, warn
+    # print(points)
 
-        points = scale_contour(points, 0.83, 1.25)
-        rect = cv2.minAreaRect(points)
-        points = cv2.boxPoints(rect).astype(np.int32)
-        print(points)
-        (x, y), (w, h), angle = rect
-        x = math.ceil(x)
-        y = math.ceil(y)
-        h = math.ceil(h)
-        w = math.ceil(w)
+    points = scale_contour(points, 0.84, 1.15)
+    rect = cv2.minAreaRect(points)
+    box = cv2.boxPoints(rect).astype(np.int32)
+    # print(box)
+    (x, y), (w, h), angle = rect
+    x = math.ceil(x)
+    y = math.ceil(y)
+    h = math.ceil(h)
+    w = math.ceil(w)
 
+    if w < h:
+        logger.debug("swapped : w < h")
+        w, h = h, w
+        angle = 90 - angle - 1
+    else:
         angle = 2.16 - angle
 
-        height, width = img.shape[:2]
+    height, width = img.shape[:2]
 
-        logger.error(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=} {angle=} ")
-        if debug:
-            img = cv2.drawContours(img, [points], -1, (0, 255, 0), 6)
-            print(
-                retval,
-                points,
-            )
-            plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            plt.show()
-        return True, False
+    logger.debug(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=} {angle=} ")
+    if debug:
+        img_d = img.copy()
+        cv2.drawContours(img_d, [box], -1, (0, 255, 0), 12)
+        # print(
+        #     retval,
+        #     box,
+        # )
+        # plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        plt.show()
+        plt.figure(1)
+        plt_img_rows = 1
+        plt_img_cols = 4
+        plt_img = 1
+        plt.subplot(plt_img_rows, plt_img_cols, plt_img)
+        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        plt_img += 1
+        plt.subplot(plt_img_rows, plt_img_cols, plt_img)
+        plt.imshow(cv2.cvtColor(img_d, cv2.COLOR_BGR2RGB))
+
+    if w < 300 or h < 100:
+        logger.debug("box: not found ")
+        # return success, warn
+
+    aspect = w / h
+    aspect_ideal = 3.9386
+    aspect_corrected = aspect / aspect_ideal
+
+    corr_bar_size_width = w
+    corr_bar_size_height = h * aspect_corrected * 1.02
+
+    corr_img_size_width = width
+    corr_img_size_height = height * aspect_corrected
+
+    logger.debug(f"corr bar: {corr_bar_size_width=} x {corr_bar_size_height=}  ")
+    logger.debug(f"corr img: {corr_img_size_width=} x {corr_img_size_height=}  ")
+
+    M = cv2.moments(box)
+    cX = int(M["m10"] / M["m00"])
+    cY = int(M["m01"] / M["m00"])
+
+    logger.debug(f"box: {cX=} {cY=} ")
+    if w < h:
+        angle_rot = 90 - angle  # -(90 - angle)
+    else:
+        angle_rot = -angle  # -(90 - angle)
+    logger.debug(f"box: {cX=} {cY=} {angle_rot=}")
+    center = (cX, cY)
+    rotMat = cv2.getRotationMatrix2D(
+        center, angle_rot, 1.0
+    )  # Get the rotation matrix, its of shape 2x3
+    img_rotated = cv2.warpAffine(img, rotMat, img.shape[1::-1])  # Rotate the image
+
+    dim = (int(corr_img_size_width), int(corr_img_size_height))
+    img_rotated = cv2.resize(img_rotated, dim)
+    cY = cY * aspect_corrected
+
+    border_size = 1000
+    mean = 0
+
+    img_rotated_crop = cv2.copyMakeBorder(
+        img_rotated,
+        top=border_size,
+        bottom=border_size,
+        left=border_size,
+        right=border_size,
+        borderType=cv2.BORDER_CONSTANT,
+        value=[mean, mean, mean],
+    )
+
+    cY = cY + border_size
+    cX = cX + border_size
+
+    top = 6.7368 * corr_bar_size_height
+    bottom = 7.78 * corr_bar_size_height
+    left = 1.3363 * corr_bar_size_width
+    rigth = 1.5145 * corr_bar_size_width
+
+    # br = 5
+    # top = br + corr_bar_size_height / 2
+    # bottom = br + corr_bar_size_height / 2
+    # left = br + corr_bar_size_width / 2
+    # rigth = br + corr_bar_size_width / 2
+
+    logger.debug(f"CROP AREA: {top=} {bottom=} {left=} {rigth=}")
+
+    img_rotated_crop = img_rotated_crop[
+        int(cY - top) : int(cY + bottom), int(cX - left) : int(cX + rigth)
+    ]
+
+    # row, col = img_rotated_crop.shape[:2]
+    # bottom = img_rotated_crop[row - 2:row, 0:col]
+
+    # rotated = ndimage.rotate(img, -(90-angle), cval=255)
+
+    if debug:
+        plt_img += 1
+        plt.subplot(plt_img_rows, plt_img_cols, plt_img)
+        plt.imshow(cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB))
+        plt_img += 1
+        plt.subplot(plt_img_rows, plt_img_cols, plt_img)
+        plt.imshow(cv2.cvtColor(img_rotated_crop, cv2.COLOR_BGR2RGB))
+        # plt.suptitle('IMG')
+        # plt.subplots_adjust(wspace=0, hspace=0)
+
+        plt.show()
+        # plt.draw()
+        # plt.waitforbuttonpress(40)
+    try:
+        cv2.imwrite(output_file, img_rotated_crop)
+        success = True
+    except OSError as e:
+        logger.error(e)
+    # leave memory
+    img_rotated_crop = np.zeros(0)
+    img_rotated = np.zeros(0)
+    img = np.zeros(0)
+    gray = np.zeros(0)
+    return success, warn
 
 
 def im_scan_barcode(

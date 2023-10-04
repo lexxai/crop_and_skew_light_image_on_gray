@@ -145,7 +145,6 @@ def scan_file_dir(
 
     repair_out: Path | None = repair
     barcode_base = parameters.get("barcode_base", False)
-
     # Scan single image specified by command line argument --image <IMAGE_PATH>
     if im_file_path:
         im_file = Path(im_file_path)
@@ -245,7 +244,10 @@ def scan_file_dir(
 def cli():
     args = app_arg()
     # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)
-    logging.basicConfig(level=logging.ERROR if args.debug else logging.ERROR)
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.ERROR)
+    logging.getLogger("matplotlib").setLevel(logging.ERROR)
+    logging.getLogger("PIL").setLevel(logging.ERROR)
+
     parameters = {
         "gamma": float(args.gamma),
         "min_height ": int(args.min_height),
@@ -258,7 +260,7 @@ def cli():
         "all_input": args.all_input,
         "no_iteration": args.no_iteration,
         "blur": args.blur,
-        "barcode_base": args.blur,
+        "barcode_base": args.barcode_base,
     }
     try:
         scan_file_dir(
