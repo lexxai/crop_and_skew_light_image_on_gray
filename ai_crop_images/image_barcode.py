@@ -7,35 +7,61 @@ import imutils
 import matplotlib.pyplot as plt
 import math
 
-# from scipy import ndimage
-# from pyzbar.pyzbar import decode
+from scipy import ndimage
+from pyzbar.pyzbar import decode
+from PIL import Image, ImageDraw
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-# def barcode_qr():
-#     img = cv2.imread("../tests/input/0008.jpg")
+# def barcode_pyzbar(
+#     file_path: Path, output: Path, parameters=None, debug: bool = False
+# ) -> (bool, bool):
+#     # img = cv2.imread(str(file_path))
+#     img = Image.open(str(file_path)).convert("RGB")
 #     barcodes = decode(img)
 #     for barcode in barcodes:
-#         print(barcode)
-#         pt1_point = [barcode.rect.left, barcode.rect.top]
-#         pt2_point = [
-#             pt1_point[0] + barcode.rect.width,
-#             pt1_point[1] + barcode.rect.height,
-#         ]
-#         cv2.rectangle(img, pt1_point, pt2_point, (255, 0, 0), 5)
-#         # nr_of_points = len(barcode.polygon)
-#         # for i  in range(nr_of_points):
-#         #     next_point_index = (i + 1) % nr_of_points
-#         #     print(i, next_point_index)
-#         #     cv2.line(img, barcode.polygon[i], barcode.polygon[next_point_index], (255, 0, 0), 1*(i+1))
-#         plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-#         plt.show()
-#         # cv2.imshow("Image", img)
-#         # cv2.waitKey(10000)
-#         # cv2.destroyAllWindows()
+#         if barcode.type == "CODE39" and barcode.quality >= 2:
+#             result: str = barcode.data.decode()
+#             poligon = barcode.polygon
+#             for x, y in poligon:
+#                 print(x, y)
+#             print(barcode)
+#             pt1_point = [barcode.rect.left, barcode.rect.top]
+#             pt2_point = [
+#                 pt1_point[0] + barcode.rect.width,
+#                 pt1_point[1] + barcode.rect.height,
+#             ]
+#             # cv2.rectangle(img, pt1_point, pt2_point, (255, 0, 0), 5)
+#             draw = ImageDraw.Draw(img)
+#             rect = barcode.rect
+#             draw.rectangle(
+#                 (
+#                     (rect.left, rect.top),
+#                     (rect.left + rect.width, rect.top + rect.height),
+#                 ),
+#                 outline="#0080ff",
+#             )
+#
+#             draw.polygon(barcode.polygon, outline="#e945ff", width=6)
+#             # img.save("bounding_box_and_polygon.png")
+#             img.show()
+#             # cv2.polylines(img, poligon, False, (0, 255, 0), 5)
+#             # draw.polygon(barcode.polygon, outline="#e945ff")
+#             # nr_of_points = len(barcode.polygon)
+#             # for i  in range(nr_of_points):
+#             #     next_point_index = (i + 1) % nr_of_points
+#             #     print(i, next_point_index)
+#             #     cv2.line(img, barcode.polygon[i], barcode.polygon[next_point_index], (255, 0, 0), 1*(i+1))
+#             # plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+#             # plt.show()
+#             # cv2.imshow("Image", img)
+#             # cv2.waitKey(10000)
+#             # cv2.destroyAllWindows()
+#             return True, False
+#     return False, False
 
 
 # def barcode_qr_cv():
@@ -69,56 +95,143 @@ logger = logging.getLogger(__name__)
 #         print("QR code not detected", decoded_text)
 
 
-# def barcode_linear_cv():
-#     debug = True
-#     print(cv2.__version__)
-#
-#     img = cv2.imread("../tests/input/0001.jpg")
-#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     bd = cv2.barcode.BarcodeDetector()
-#     # bd = cv2.barcode.BarcodeDetector('sr.prototxt', 'sr.caffemodel')
-#     # img = cv2.flip(img, 1)
-#     retval, decoded_info, decoded_type, _ = bd.detectAndDecodeWithType(img)
-#     print(retval, decoded_info, decoded_type)
-#     plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-#     plt.show()
-#     return
-#
-#     if points is not None:
-#         nr_of_points = len(points)
-#
-#         for i in range(nr_of_points):
-#             next_point_index = (i + 1) % nr_of_points
-#             print(points[i])
-#             # cv2.line(img, tuple(points[i][0]), tuple(points[next_point_index][0]), (255, 0, 0), 5)
-#
-#         print(decoded_text)
-#
-#         plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-#         # cv2.imshow("Image", img)
-#         # cv2.waitKey(10000)
-#         # cv2.destroyAllWindows()
-#         print("QR code ", points, decoded_text)
+def cart2pol(x, y):
+    theta = np.arctan2(y, x)
+    rho = np.hypot(x, y)
+    return theta, rho
+
+
+def pol2cart(theta, rho):
+    x = rho * np.cos(theta)
+    y = rho * np.sin(theta)
+    return x, y
+
+
+def rotate_contour(cnt, angle):
+    M = cv2.moments(cnt)
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+
+    cnt_norm = cnt - [cx, cy]
+
+    coordinates = cnt_norm[:, 0, :]
+    xs, ys = coordinates[:, 0], coordinates[:, 1]
+    thetas, rhos = cart2pol(xs, ys)
+
+    thetas = np.rad2deg(thetas)
+    thetas = (thetas + angle) % 360
+    thetas = np.deg2rad(thetas)
+
+    xs, ys = pol2cart(thetas, rhos)
+
+    cnt_norm[:, 0, 0] = xs
+    cnt_norm[:, 0, 1] = ys
+
+    cnt_rotated = cnt_norm + [cx, cy]
+    cnt_rotated = cnt_rotated.astype(np.int32)
+
+    return cnt_rotated
+
+
+# def rotate_contour(cnt, angle):
+#     if angle < -45:
+#         angle = 90 + angle
+#     # otherwise, just take the inverse of the angle to make
+#     # it positive
 #     else:
-#         print("QR code not detected", decoded_text)
+#         angle = -angle
+#
+#     M = cv2.moments(cnt)
+#     cx = int(M["m10"] / M["m00"])
+#     cy = int(M["m01"] / M["m00"])
+#     center = (cx, cy)
+#     rotate_matrix = cv2.getRotationMatrix2D(center=center, angle=angle, scale=1)
+#     rotated_image = cv2.warpAffine(src=cnt, M=rotate_matrix)
+#     return rotated_image
+
+
+def scale_contour(cnt, scale_x, scale_y=None):
+    if scale_y is None:
+        scale_y = scale_x
+    M = cv2.moments(cnt)
+    cx: int = int(M["m10"] / M["m00"])
+    cy: int = int(M["m01"] / M["m00"])
+
+    cnt_norm = cnt - [cx, cy]
+    print("1. {cnt_norm=}")
+    cnt_scaled = cnt_norm * (scale_x, scale_y)
+    print("2. {cnt_scaled=}")
+    cnt_scaled = cnt_scaled + (cx, cy)
+    cnt_scaled = cnt_scaled.astype(np.int32)
+
+    return cnt_scaled
+
+
+def barcode_linear_cv(
+    file_path: Path, output: Path, parameters=None, debug: bool = False
+) -> (bool, bool):
+    print(cv2.__version__)
+
+    img = cv2.imread(str(file_path))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    bd = cv2.barcode.BarcodeDetector()
+    # bd = cv2.barcode.BarcodeDetector('sr.prototxt', 'sr.caffemodel')
+    # img = cv2.flip(img, 1)
+    retval, points = bd.detect(img)
+    if retval:
+        # points = rotate_contour(points, 2)
+
+        points = scale_contour(points, 0.83, 1.25)
+        rect = cv2.minAreaRect(points)
+        points = cv2.boxPoints(rect).astype(np.int32)
+        print(points)
+        (x, y), (w, h), angle = rect
+        x = math.ceil(x)
+        y = math.ceil(y)
+        h = math.ceil(h)
+        w = math.ceil(w)
+
+        angle = 2.16 - angle
+
+        height, width = img.shape[:2]
+
+        logger.error(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=} {angle=} ")
+        if debug:
+            img = cv2.drawContours(img, [points], -1, (0, 255, 0), 6)
+            print(
+                retval,
+                points,
+            )
+            plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            plt.show()
+        return True, False
 
 
 def im_scan_barcode(
     file_path: Path, output: Path, parameters=None, debug: bool = False
-):
+) -> (bool, bool):
     if parameters is None:
         parameters = {}
-
+    success, warn = False, False
     size = file_path.stat().st_size
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime(
         "%Y-%m-%d %H:%M"
     )
     modified = str(date_m)
     logger.debug(f"File: '{file_path.name}' {size=} bytes, {modified=}")
-    return barcode_scan(file_path, output, parameters=parameters, debug=debug)
+    # success, warn = barcode_scan(file_path, output, parameters=parameters, debug=debug)
+    success, warn = barcode_linear_cv(
+        file_path, output, parameters=parameters, debug=debug
+    )
+    # success, warn = barcode_pyzbar(
+    #     file_path, output, parameters=parameters, debug=debug
+    # )
+    return success, warn
 
 
-def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = False):
+def barcode_scan(
+    file_path: Path, output: Path, parameters=None, debug: bool = False
+) -> (bool, bool):
     success, warn = False, False
     if parameters is None:
         parameters = {}
@@ -161,7 +274,7 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
 
     # perform a series of erosions and dilations
     closed = cv2.erode(closed, None, iterations=4)
-    closed = cv2.dilate(closed, None, iterations=4)
+    closed = cv2.dilate(closed, None, iterations=9)
 
     # cv2.imshow("Image cloed", closed)
     # plt.imshow(closed)
@@ -189,7 +302,7 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
 
         # cv2.drawContours(img_d, cnts0, -1, (255, 0, 0), 3)  # in blue
         cv2.drawContours(img_d, [box], -1, (0, 255, 0), 1)
-
+        #
         # cv2.imshow("Image", img)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
@@ -213,10 +326,10 @@ def barcode_scan(file_path: Path, output: Path, parameters=None, debug: bool = F
 
     height, width = img.shape[:2]
 
-    logger.debug(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=}  ")
+    logger.error(f"box: {x=} {y=} {w=} {h=}  img: {width=} x {height=}  ")
 
     if width < 300 or height < 100:
-        logger.debug("box: not found ")
+        logger.error("box: not found ")
         return success, warn
 
     aspect = w / h

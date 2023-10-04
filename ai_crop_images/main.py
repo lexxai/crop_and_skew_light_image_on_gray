@@ -245,7 +245,7 @@ def scan_file_dir(
 def cli():
     args = app_arg()
     # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.ERROR)
+    logging.basicConfig(level=logging.ERROR if args.debug else logging.ERROR)
     parameters = {
         "gamma": float(args.gamma),
         "min_height ": int(args.min_height),

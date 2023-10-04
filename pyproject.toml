@@ -7,7 +7,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-opencv-python = "^4.8.0.76"
 progressbar2 = "^4.2.0"
 imutils = "^0.5.4"
 scipy = {version = "^1.11.2", python = ">=3.11,<3.13"}
@@ -16,6 +15,7 @@ rich = "^13.5.2"
 matplotlib = "^3.7.2"
 pyzbar = "^0.1.9"
 tqdm = "^4.66.1"
+opencv-contrib-python = "^4.8.1.78"
 
 [tool.poetry.scripts]
 ai_crop_images = "ai_crop_images.main:cli"
