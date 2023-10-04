@@ -5,8 +5,8 @@ Using Python and OpenCV to detect the border of a light image on a gray backgrou
 ## help
 
 ```
-ai_crop_images   [-h] [-V] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--repair REPAIR] [--gamma GAMMA] [--morph MORPH] [--blur {3,5,7,9,11,13}]
-                  [--normalize NORMALIZE] [--dilate] [--ratio RATIO] [--min_height MIN_HEIGHT] [--detection_height DETECTION_HEIGHT] [--no_iteration]
+ai_crop_images    [-h] [-V] (--images IMAGES | --image IMAGE) [--output OUTPUT] [--barcode_method {0,1,2}] [--repair REPAIR] [--gamma GAMMA] [--morph MORPH]
+                  [--blur {3,5,7,9,11,13}] [--normalize NORMALIZE] [--dilate] [--ratio RATIO] [--min_height MIN_HEIGHT] [--detection_height DETECTION_HEIGHT] [--no_iteration]
                   [--debug] [--log] [--noskip] [--all_input]
 
 options:
@@ -14,7 +14,9 @@ options:
   -V, --version         show version of app
   --images IMAGES       Directory of images to be scanned
   --image IMAGE         Path to single image to be scanned
-  --output OUTPUT       Directory to output result images, default: 'output'
+  --output OUTPUT       Directory to output_ result images, default: 'output'
+  --barcode_method {0,1,2}
+                        Force to use search boundary method. 2 - opencv barcode lib, 1 - opencv geometry analise, by default: 0 - disabled
   --repair REPAIR       If the output folder is not empty, then save to the recovery folder, by default: None
   --gamma GAMMA         Gamma image correction pre-filter, default: '4.0', 1 - Off
   --morph MORPH         morph image correction for smooth contours, default: '35'. 0 - Off
@@ -25,14 +27,13 @@ options:
   --dilate              dilate, CV operation to close open contours with an eclipse. default: 'off'
   --ratio RATIO         desired correction of the image aspect ratio H to W, default: '1.294'
   --min_height MIN_HEIGHT
-                        desired minimum height of the output image in px, default: '1000'
+                        desired minimum height of the output_ image in px, default: '1000'
   --detection_height DETECTION_HEIGHT
                         internally downscale the original image to this height in px for the found border, default: '900'
-  --no_iteration        disable the iteration process to automatically adjust the gamma and dilate values in case of an unsuccessful result, default:
-                        iteration is enabled.
+  --no_iteration        disable the iteration process to automatically adjust the gamma and dilate values in case of an unsuccessful result, default: iteration is enabled.
   --debug               debug, CV operation for single image only
   --log                 store a list of skipped images and images with comments in log files
-  --noskip              no skip wrong images, like output same size, or result less than 800x1000. Copy original if problem. Default: skipped
+  --noskip              no skip wrong images, like output_ same size, or result less than 800x1000. Copy original if problem. Default: skipped
   --all_input           Scan all images in the input folder without skipping the search for already processed images in the output folder
 
 ```

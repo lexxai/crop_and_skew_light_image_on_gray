@@ -63,7 +63,7 @@ def app_arg():
         default=0,
         choices=[0, 1, 2],
         help="Force to use search boundary method."
-        " 1 - opencv barcode lib, 2 - opencv geometry analise,"
+        " 2 - opencv barcode lib, 1 - opencv geometry analise,"
         " by default: 0 - disabled",
         type=int,
     )
@@ -148,7 +148,7 @@ def app_arg():
         "--all_input",
         action="store_true",
         help="Scan all images in the input folder without skipping the search "
-        "for already processed images in the output_ folder",
+        "for already processed images in the output folder",
     )
 
     args = ap.parse_args()
