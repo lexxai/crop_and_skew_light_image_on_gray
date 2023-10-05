@@ -93,7 +93,7 @@ def scan_file_dir(
 
         if im_file.exists() and im_file.is_file():
             if barcode_method:
-                im_scan_barcode(
+                result = im_scan_barcode(
                     im_file,
                     path_out,
                     parameters=parameters,
@@ -101,7 +101,9 @@ def scan_file_dir(
                     barcode_method=barcode_method,
                 )
             else:
-                im_scan(im_file, path_out, parameters=parameters, debug=debug)
+                result = im_scan(im_file, path_out, parameters=parameters, debug=debug)
+            if not result.get("success"):
+                print(result)
         else:
             print(f"[bold red]File '{im_file_path}' not found[/bold red]")
             return
@@ -237,12 +239,12 @@ def cli():
     args = app_arg()
     # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)
     log_dir = Path("log")
-    # logfile = log_dir.joinpath("debug.log")
+    logfile = log_dir.joinpath("main_debug.log")
     # log_dir.mkdir(exist_ok=True, parents=True)
-    # logging.basicConfig(
-    #     level=logging.DEBUG if args.debug else logging.ERROR,
-    #     handlers=[RotatingFileHandler(logfile, maxBytes=20000, backupCount=10)],
-    # )
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.ERROR,
+        handlers=[RotatingFileHandler(logfile, maxBytes=20000, backupCount=10)],
+    )
     init_logger(log_dir, debug=args.debug, log=True)
     # handler = RotatingFileHandler(logfile, maxBytes=20000, backupCount=10)
     # logger.setLevel(logging.DEBUG if args.debug else logging.ERROR)

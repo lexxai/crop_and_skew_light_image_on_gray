@@ -322,17 +322,9 @@ def barcode_scan(
 
     logger.debug(f"box: {x=} {y=} {w=} {h=} {angle=} img: {width=} x {height=}  ")
 
-    if w < 250 or h < 100:
-        logger.debug("box: not found by size ")
-        return success, warn
-
     aspect = w / h
     aspect_ideal = 3.9386
     aspect_corrected = aspect / aspect_ideal
-
-    if aspect < 3.2:
-        logger.debug("box: not found by aspect ")
-        return success, warn
 
     corr_bar_size_width = w
     corr_bar_size_height = h * aspect_corrected * 1.02
@@ -411,6 +403,14 @@ def barcode_scan(
         # plt.draw()
         # plt.waitforbuttonpress(40)
 
+    if w < 250 or h < 60:
+        logger.debug("box: not found by size ")
+        return success, warn
+
+    if aspect < 3.2:
+        logger.debug("box: not found by aspect ")
+        return success, warn
+
     try:
         cv2.imwrite(output_file, img_rotated_crop)
         success = True
@@ -450,6 +450,7 @@ def barcode_linear_cv(
     try:
         points = sorted(points, key=cv2.contourArea, reverse=True)[0]
     except IndexError:
+        logger.debug("contours problems")
         return success, warn
     # print(points)
 
@@ -495,14 +496,6 @@ def barcode_linear_cv(
     aspect = w / h
     aspect_ideal = 3.9386
     aspect_corrected = aspect / aspect_ideal
-
-    if w < 250 or h < 100:
-        logger.debug("box: not found by size ")
-        return success, warn
-
-    if aspect < 3.2:
-        logger.debug("box: not found by aspect ")
-        return success, warn
 
     corr_bar_size_width = w
     corr_bar_size_height = h * aspect_corrected * 1.02
@@ -584,6 +577,15 @@ def barcode_linear_cv(
         plt.show()
         # plt.draw()
         # plt.waitforbuttonpress(40)
+
+    if w < 250 or h < 60:
+        logger.debug("box: not found by size ")
+        return success, warn
+
+    if aspect < 3.2:
+        logger.debug("box: not found by aspect ")
+        return success, warn
+
     try:
         cv2.imwrite(output_file, img_rotated_crop)
         success = True
