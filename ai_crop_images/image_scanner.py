@@ -18,7 +18,7 @@ import logging
 import numpy as np
 
 
-logger: logging
+logger: logging = None
 
 
 def init_logger(_name: str = None):
@@ -387,6 +387,8 @@ def im_scan(
     # logger.debug(f"STILL FAKE. Just print :) {__package__}, im_scan {file_path}")
     if parameters is None:
         parameters = {}
+    if logger is None:
+        init_logger(file_path.name)
     size = file_path.stat().st_size
     date_m = datetime.fromtimestamp(file_path.stat().st_mtime).strftime(
         "%Y-%m-%d %H:%M"
